@@ -3,14 +3,14 @@
 Usage:
     python importer.py path/to/PMIS_export.xlsx [--admin-pin 9999]
 
-* Reads the sheet named "Applications" (or the first sheet that has a
-  "Candidate Id" header). Columns are matched by header name, so column
-  order does not matter and helper/formula columns are ignored.
-* All IDs are kept as text.
+* Reads the sheet named "Applications" (or the first sheet with a "Candidate Id" header).
+  Columns are matched by header name; extra columns are ignored.
+* Optional column "VLE District" (or "District") is shown in the VLE greeting and
+  used for the admin district filter.
+* Status labels are normalised to the agreed 6 stages (e.g. "Joined" -> "Joining Verified").
+* One row = one application. A candidate may appear on several rows.
 * Application rows are fully replaced on every import (snapshot load).
-* Every new VLE gets a random 4-digit PIN. New PINs are written to
-  data/new_vle_pins.csv so the admin can hand them out - share that file
-  privately and delete it afterwards. Existing VLE PINs are never changed.
+* New VLEs get a random PIN in data/new_vle_pins.csv unless data/pins.csv sets one.
 """
 import argparse
 import csv
@@ -32,8 +32,15 @@ COLUMNS = {
     "application status": "status",
     "vle id": "vle_id",
     "vle location": "vle_location",
+    "vle state": "vle_location",
+    "state": "vle_location",
+    "vle district": "vle_district",
+    "district": "vle_district",
     "project code": "project_code",
+    "csc project code": "project_code",
 }
+FIELDS = ["candidate_id", "candidate_name", "internship_id", "company_name", "status",
+          "vle_id", "vle_location", "vle_district", "project_code"]
 REQUIRED = {"candidate_id", "candidate_name", "internship_id", "status", "vle_id"}
 
 
@@ -53,17 +60,24 @@ def read_rows(xlsx_bytes: bytes):
         for header in it:
             names = [_clean(h).lower() for h in header]
             if "candidate id" in names:
-                idx = {COLUMNS[n]: i for i, n in enumerate(names) if n in COLUMNS}
+                idx = {}
+                for i, n in enumerate(names):
+                    if n in COLUMNS and COLUMNS[n] not in idx:
+                        idx[COLUMNS[n]] = i
                 missing = REQUIRED - idx.keys()
                 if missing:
                     raise ValueError(f"Missing columns: {', '.join(sorted(missing))}")
                 rows, problems = [], []
                 for n, r in enumerate(it, start=2):
-                    rec = {k: _clean(r[i]) if i < len(r) else "" for k, i in idx.items()}
+                    rec = {k: (_clean(r[idx[k]]) if k in idx and idx[k] < len(r) else "") for k in FIELDS}
                     if not rec["candidate_id"]:
                         continue
-                    if rec["status"] not in db.STAGES:
-                        problems.append(f"row {n}: unknown status '{rec['status']}'")
+                    rec["vle_id"] = rec["vle_id"].upper()
+                    st = db.normalise_status(rec["status"])
+                    if not st:
+                        problems.append(f"row {n}: unknown status '{rec['status']}' (counted as Applied)")
+                        st = "Applied"
+                    rec["status"] = st
                     rows.append(rec)
                 return rows, problems
     raise ValueError("No sheet with a 'Candidate Id' header was found.")
@@ -76,29 +90,22 @@ def load(xlsx_bytes: bytes, source_name: str = "upload.xlsx", admin_pin: str | N
     with db.connect() as con:
         con.execute("DELETE FROM applications")
         con.executemany(
-            """INSERT INTO applications (candidate_id, candidate_name, internship_id, company_name,
-               status, vle_id, vle_location, project_code)
-               VALUES (:candidate_id, :candidate_name, :internship_id, :company_name,
-               :status, :vle_id, :vle_location, :project_code)""",
-            [{k: r.get(k, "") for k in COLUMNS.values()} for r in rows],
-        )
-        locs = {}
+            f"INSERT INTO applications ({', '.join(FIELDS)}) VALUES ({', '.join(':' + f for f in FIELDS)})", rows)
+        info = {}
         for r in rows:
-            locs.setdefault(r["vle_id"], r.get("vle_location", ""))
-        for vle_id, loc in locs.items():
-            hit = con.execute("SELECT 1 FROM vles WHERE vle_id=?", (vle_id,)).fetchone()
-            if hit:
-                con.execute("UPDATE vles SET location=? WHERE vle_id=?", (loc, vle_id))
+            info.setdefault(r["vle_id"], (r["vle_location"], r["vle_district"]))
+        for vle_id, (loc, dist) in info.items():
+            if con.execute("SELECT 1 FROM vles WHERE vle_id=?", (vle_id,)).fetchone():
+                con.execute("UPDATE vles SET location=?, district=? WHERE vle_id=?", (loc, dist, vle_id))
             else:
                 pin = f"{secrets.randbelow(10000):04d}"
-                con.execute("INSERT INTO vles (vle_id, location, pin_salt, pin_hash) VALUES (?,?,'','')", (vle_id, loc))
+                con.execute("INSERT INTO vles (vle_id, location, district, pin_salt, pin_hash) VALUES (?,?,?,'','')",
+                            (vle_id, loc, dist))
                 db.set_pin(con, vle_id, pin)
-                new_pins.append((vle_id, loc, pin))
+                new_pins.append((vle_id, loc, dist, pin))
         if admin_pin:
-            if not con.execute("SELECT 1 FROM vles WHERE vle_id='ADMIN'").fetchone():
-                con.execute("INSERT INTO vles (vle_id, location, pin_salt, pin_hash, role) VALUES ('ADMIN','All','','','admin')")
-            db.set_pin(con, "ADMIN", admin_pin)
-        con.execute("INSERT OR REPLACE INTO meta VALUES ('last_import', ?)", (datetime.now().isoformat(timespec="minutes"),))
+            db.upsert_admin(con, "ADMIN", admin_pin)
+        con.execute("INSERT OR REPLACE INTO meta VALUES ('last_import', ?)", (datetime.now().strftime("%d %b %Y, %H:%M"),))
         con.execute("INSERT OR REPLACE INTO meta VALUES ('source', ?)", (source_name,))
 
     if new_pins:
@@ -107,9 +114,10 @@ def load(xlsx_bytes: bytes, source_name: str = "upload.xlsx", admin_pin: str | N
         with out.open("a", newline="") as f:
             w = csv.writer(f)
             if write_header:
-                w.writerow(["VLE ID", "VLE Location", "PIN"])
+                w.writerow(["VLE ID", "State", "District", "PIN"])
             w.writerows(new_pins)
-    return {"rows": len(rows), "vles": len({r["vle_id"] for r in rows}), "new_vles": len(new_pins), "warnings": problems}
+    return {"rows": len(rows), "candidates": len({r["candidate_id"] for r in rows}),
+            "vles": len({r["vle_id"] for r in rows}), "new_vles": len(new_pins), "warnings": problems}
 
 
 if __name__ == "__main__":
@@ -118,8 +126,5 @@ if __name__ == "__main__":
     ap.add_argument("--admin-pin", help="create/reset the ADMIN login with this PIN")
     a = ap.parse_args()
     p = Path(a.xlsx)
-    result = load(p.read_bytes(), p.name, a.admin_pin)
-    print(result)
-    if result["new_vles"]:
-        print(f"New PINs written to {db.DB_PATH.parent / 'new_vle_pins.csv'}")
+    print(load(p.read_bytes(), p.name, a.admin_pin))
     sys.exit(0)

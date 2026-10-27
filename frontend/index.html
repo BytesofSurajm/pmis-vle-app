@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>PMIS VLE Dashboard</title>
+<title>PMIS CSC Project</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Baloo+Tamma+2:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
-/* Layout: one long, calm page that reads like a road - who you have -> where they are on the road -> each person. */
+/* Layout: one calm page read top-down - who you are -> three headline numbers -> the road of six steps -> each candidate. */
 :root{
   --ground:#EEF2EC; --surface:#FFFFFF; --surface-2:#F6F8F4; --ink:#16241F; --muted:#56655F; --line:#D5DDD3;
-  --accent:#C9761A; --accent-ink:#FFFFFF; --road:#33423D; --road-dash:#F3E2B8; --focus:#1F6FEB;
+  --accent:#C9761A; --accent-ink:#FFFFFF; --road:#33423D; --road-dash:#F3E2B8; --focus:#1F6FEB; --danger:#B3261E;
   --s1:#6F7F8C; --s2:#2F6FC9; --s3:#7D52BF; --s4:#C9761A; --s5:#0B8B97; --s6:#24913F;
   --s1-bg:#E7ECEF; --s2-bg:#E3EDFA; --s3-bg:#EFE8F8; --s4-bg:#FAEEDD; --s5-bg:#DFF2F3; --s6-bg:#E1F2E5;
   --shadow:0 1px 2px rgba(22,36,31,.06),0 6px 20px rgba(22,36,31,.06);
@@ -23,23 +23,24 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --ground:#0F1714; --surface:#17221E; --surface-2:#1C2924; --ink:#E8EFEA; --muted:#9DB0A7; --line:#2A3A34;
-  --accent:#E8A04A; --accent-ink:#1A1206; --road:#C9D4CE; --road-dash:#4A5A53; --focus:#6EA8FF;
+  --accent:#E8A04A; --accent-ink:#1A1206; --road:#C9D4CE; --road-dash:#4A5A53; --focus:#6EA8FF; --danger:#FF8A80;
   --s1:#9AABB8; --s2:#6FA3F0; --s3:#AE8AE8; --s4:#E8A04A; --s5:#3CC3CE; --s6:#55C774;
   --s1-bg:#22302F; --s2-bg:#1B2B42; --s3-bg:#2A2340; --s4-bg:#3A2A14; --s5-bg:#123236; --s6-bg:#16331F;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}}
 :root[data-theme="dark"]{
   --ground:#0F1714; --surface:#17221E; --surface-2:#1C2924; --ink:#E8EFEA; --muted:#9DB0A7; --line:#2A3A34;
-  --accent:#E8A04A; --accent-ink:#1A1206; --road:#C9D4CE; --road-dash:#4A5A53; --focus:#6EA8FF;
+  --accent:#E8A04A; --accent-ink:#1A1206; --road:#C9D4CE; --road-dash:#4A5A53; --focus:#6EA8FF; --danger:#FF8A80;
   --s1:#9AABB8; --s2:#6FA3F0; --s3:#AE8AE8; --s4:#E8A04A; --s5:#3CC3CE; --s6:#55C774;
   --s1-bg:#22302F; --s2-bg:#1B2B42; --s3-bg:#2A2340; --s4-bg:#3A2A14; --s5-bg:#123236; --s6-bg:#16331F;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{background:var(--ground);color:var(--ink)}
 body{margin:0;font-family:var(--f-body);font-size:17px;line-height:1.45;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--ground)}
-button,input{font:inherit;color:inherit}
+button,input,select{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:8px}
 h1,h2,h3{font-family:var(--f-display);line-height:1.15;margin:0;text-wrap:balance}
@@ -48,60 +49,55 @@ h1,h2,h3{font-family:var(--f-display);line-height:1.15;margin:0;text-wrap:balanc
 .num{font-variant-numeric:tabular-nums}
 svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.hint{color:var(--muted);font-size:15px}
 
 /* top bar */
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--ground);padding-block:12px;border-bottom:1px solid var(--line)}
 .top .wrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.brand{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:800;font-size:20px;margin-right:auto}
-.brand .mark{width:36px;height:36px;border-radius:10px;background:var(--road);color:var(--ground);display:grid;place-items:center}
-.brand small{display:block;font-weight:500;font-size:12px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;line-height:1}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:800;font-size:20px;margin-right:auto;line-height:1.1}
+.brand .mark{width:38px;height:38px;border-radius:10px;background:var(--road);color:var(--ground);display:grid;place-items:center}
+.brand small{display:block;font-weight:600;font-size:13px;color:var(--muted);letter-spacing:.03em}
 .langs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
 .langs button{border:0;background:transparent;border-radius:999px;padding:4px 12px;font-weight:600;font-size:16px;min-height:38px}
 .langs button[aria-pressed="true"]{background:var(--ink);color:var(--ground)}
 .btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 16px;min-height:44px;font-weight:600}
 .btn:hover{border-color:var(--muted)}
-.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-size:20px;padding:10px 26px;min-height:56px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-size:20px;padding:10px 26px;min-height:56px;justify-content:center}
 .btn .i{font-size:20px}
 
-/* login */
-.login{min-height:calc(100vh - 90px);display:grid;place-items:center;padding-block:32px}
-.login-card{width:100%;max-width:480px;background:var(--surface);border-radius:22px;box-shadow:var(--shadow);padding:28px;display:grid;gap:18px}
-.login-art{display:flex;align-items:flex-end;gap:6px;height:70px;color:var(--muted)}
-.login-art span{display:block;border-radius:6px 6px 0 0;width:100%}
-.login h1{font-size:30px}
+/* landing / login */
+.login{display:grid;place-items:center;padding-block:36px}
+.login-card{width:100%;max-width:500px;background:var(--surface);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
+.login-band{background:var(--road);color:var(--ground);padding:22px 26px 18px;display:grid;gap:4px}
+.login-band .eyebrow{font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:13px;opacity:.8}
+.login-band h1{font-size:30px}
+.login-band p{margin:0;opacity:.85;font-size:16px;line-height:1.35}
+.login-steps{display:flex;height:8px}
+.login-steps span{flex:1}
+.login-form{padding:24px 26px 26px;display:grid;gap:16px}
 .field{display:grid;gap:6px}
 .field label{font-weight:600;color:var(--muted)}
-.field input{width:100%;border:2px solid var(--line);background:var(--surface-2);border-radius:14px;padding:12px 16px;font-size:24px;font-family:var(--f-mono);letter-spacing:.06em;text-transform:uppercase}
+.field input{width:100%;border:2px solid var(--line);background:var(--surface-2);border-radius:14px;padding:12px 16px;font-size:22px;font-family:var(--f-mono);letter-spacing:.04em}
+#vleIn{text-transform:uppercase}
 .field input:focus{border-color:var(--focus);outline:none}
-.err{color:#B3261E;font-weight:600;min-height:1.4em}
-:root[data-theme="dark"] .err{color:#FF8A80}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .err{color:#FF8A80}}
+.err{color:var(--danger);font-weight:600;min-height:1.4em}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{border:1px dashed var(--line);background:var(--surface-2);border-radius:999px;padding:6px 14px;font-family:var(--f-mono);font-size:15px;min-height:40px}
-.hint{color:var(--muted);font-size:15px}
 
 /* hero */
-.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;padding-block:24px 8px;align-items:stretch}
-.hello{display:grid;gap:14px;align-content:start}
-.hello .who{display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--muted);font-weight:600}
-.tag{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px 12px;font-size:15px}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:22px;padding-block:24px 8px;align-items:center}
+.hello{display:grid;gap:12px;align-content:start}
+.who{display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--muted);font-weight:600}
+.tag{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px 12px;font-size:15px;color:var(--ink)}
 .big{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
 .big b{font-family:var(--f-display);font-size:clamp(64px,10vw,104px);line-height:.9;font-weight:800}
-.big span{font-size:22px;font-weight:600;max-width:16ch;line-height:1.2}
+.big span{font-size:22px;font-weight:600;max-width:17ch;line-height:1.2}
+.summary{display:grid;gap:10px}
 .tri{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.tri div{background:var(--surface);border-radius:var(--r);padding:12px 14px;display:grid;gap:2px;border-top:5px solid var(--c)}
-.tri b{font-family:var(--f-display);font-size:34px;line-height:1}
+.tri div{background:var(--surface);border-radius:var(--r);padding:12px 14px;display:grid;gap:4px;border-top:5px solid var(--c);align-content:start}
+.tri b{font-family:var(--f-display);font-size:38px;line-height:1}
 .tri span{font-size:15px;color:var(--muted);font-weight:600;line-height:1.2}
-.crowd{background:var(--surface);border-radius:20px;padding:18px;box-shadow:var(--shadow);display:grid;gap:12px;align-content:start}
-.crowd-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.crowd-head h2{font-size:20px}
-.figs{display:flex;flex-wrap:wrap;gap:4px}
-.figs svg{width:22px;height:28px}
-.figs.md svg{width:30px;height:38px}
-.figs.lg svg{width:40px;height:50px}
-.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px;color:var(--muted)}
-.legend span{display:inline-flex;gap:6px;align-items:center}
-.legend i{width:12px;height:12px;border-radius:4px;background:var(--c)}
+.tri small{font-size:13px;color:var(--muted)}
 .goal{display:flex;align-items:center;gap:14px;background:var(--s6-bg);border-radius:var(--r);padding:12px 14px}
 .goal svg{width:64px;height:64px;flex:none}
 .goal p{margin:0;font-weight:600;font-size:18px;line-height:1.25}
@@ -116,11 +112,9 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .road ol::before{content:"";position:absolute;left:8%;right:8%;top:38px;height:12px;border-radius:12px;background:var(--road);
   background-image:repeating-linear-gradient(90deg,transparent 0 14px,var(--road-dash) 14px 26px);background-size:100% 2px;background-repeat:no-repeat;background-position:0 5px}
 .stop{position:relative;display:grid;justify-items:center;text-align:center;gap:4px;border:2px solid transparent;background:transparent;border-radius:16px;padding:0 4px 10px;width:100%}
-.stop:hover{background:var(--surface-2)}
+button.stop:hover{background:var(--surface-2)}
 .stop[aria-pressed="true"]{border-color:var(--c);background:var(--cbg)}
-.stop .dot{width:88px;height:88px;border-radius:50%;background:var(--c);color:#fff;display:grid;place-items:center;border:6px solid var(--surface);box-shadow:0 0 0 2px var(--c);position:relative}
-:root[data-theme="dark"] .stop .dot{color:#0F1714}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .stop .dot{color:#0F1714}}
+.stop .dot{width:88px;height:88px;border-radius:50%;background:var(--c);color:var(--surface);display:grid;place-items:center;border:6px solid var(--surface);box-shadow:0 0 0 2px var(--c);position:relative}
 .stop .dot svg{width:38px;height:38px;stroke-width:2.2}
 .stop .step{position:absolute;top:-6px;right:-6px;background:var(--ink);color:var(--ground);border-radius:999px;font-size:13px;font-weight:700;min-width:26px;height:26px;display:grid;place-items:center;border:2px solid var(--surface)}
 .stop b{font-family:var(--f-display);font-size:40px;line-height:1;margin-top:6px;color:var(--c)}
@@ -128,29 +122,23 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .stop .pct{font-size:13px;color:var(--muted)}
 .stop.zero{opacity:.55}
 .bar100{display:flex;height:16px;border-radius:999px;overflow:hidden;margin-top:14px;background:var(--surface-2)}
-.bar100 i{display:block;height:100%;background:var(--c)}
+.bar100 i,.sbar i{display:block;height:100%;background:var(--c)}
 
 /* main grid */
-.main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:20px;align-items:start}
-.side{display:grid;gap:16px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 80px)}
-.panel{background:var(--surface);border-radius:20px;padding:16px;box-shadow:var(--shadow);display:grid;gap:10px}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}
+.side{display:grid;gap:16px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 84px)}
+.panel{background:var(--surface);border-radius:20px;padding:16px;box-shadow:var(--shadow);display:grid;gap:10px;min-width:0}
 .panel h3{font-size:20px;display:flex;align-items:center;gap:8px}
 .co{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;border:0;background:transparent;text-align:left;padding:4px;border-radius:10px;width:100%}
 .co:hover,.co[aria-pressed="true"]{background:var(--surface-2)}
 .co[aria-pressed="true"]{outline:2px solid var(--ink)}
 .co .lm{width:34px;height:34px;border-radius:9px;background:var(--surface-2);border:1px solid var(--line);display:grid;place-items:center;font-weight:800;font-family:var(--f-display);font-size:15px}
-.co .nm{font-weight:600;font-size:15px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.co .sb{display:flex;height:8px;border-radius:999px;overflow:hidden;margin-top:4px;background:var(--surface-2)}
-.co .sb i{background:var(--c)}
+.co .nm{display:block;font-weight:600;font-size:15px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sbar{display:flex;height:8px;border-radius:999px;overflow:hidden;margin-top:4px;background:var(--surface-2)}
 .co b{font-family:var(--f-display);font-size:22px}
 .more{border:0;background:transparent;color:var(--accent);font-weight:700;justify-self:start;padding:4px}
-.pj{display:flex;flex-wrap:wrap;gap:8px}
-.pj button{border:1px solid var(--line);background:var(--surface-2);border-radius:12px;padding:6px 12px;display:grid;text-align:left;min-width:92px}
-.pj button[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
-.pj b{font-family:var(--f-display);font-size:24px;line-height:1}
-.pj span{font-family:var(--f-mono);font-size:13px}
 
-/* finder + list */
+/* finder + candidate cards */
 .finder{display:flex;gap:10px;align-items:center;background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:6px 8px 6px 16px}
 .finder:focus-within{border-color:var(--focus)}
 .finder .i{font-size:24px;color:var(--muted)}
@@ -159,40 +147,54 @@ svg.i{width:1em;height:1em;flex:none;fill:none;stroke:currentColor;stroke-width:
 .active .count{font-weight:700;font-size:18px;margin-right:6px}
 .pill{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:4px 8px 4px 12px;background:var(--cbg,var(--surface-2));color:var(--ink);font-weight:600;font-size:15px}
 .pill .x{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--surface)}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
-.card{background:var(--surface);border-radius:18px;padding:14px;display:grid;gap:10px;border:0;text-align:left;box-shadow:var(--shadow);border-left:6px solid var(--c);width:100%}
-.card:hover{transform:translateY(-1px)}
-.card .row{display:flex;gap:12px;align-items:center;min-width:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;align-items:start}
+.card{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);border-left:6px solid var(--c);min-width:0}
+.card-open{display:grid;gap:10px;width:100%;border:0;background:transparent;text-align:left;padding:14px;border-radius:18px}
+.card-open:hover{background:var(--surface-2)}
+.row{display:flex;gap:12px;align-items:center;min-width:0}
 .av{width:52px;height:52px;border-radius:50%;flex:none;display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:20px;background:var(--cbg);color:var(--c)}
 .card h3{font-size:21px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.card .cmp{display:flex;align-items:center;gap:6px;color:var(--muted);font-weight:600;font-size:15px;min-width:0}
-.card .cmp span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmp{display:flex;align-items:center;gap:6px;color:var(--muted);font-weight:600;font-size:15px;min-width:0}
+.cmp span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .track{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
 .track i{height:10px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line)}
 .track i.on{background:var(--c);border-color:var(--c)}
+.track.sm i{height:6px}
 .now{display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap}
-.badge{display:inline-flex;align-items:center;gap:6px;background:var(--cbg);color:var(--c);border-radius:999px;padding:3px 12px 3px 8px;font-weight:700;font-size:15px}
+.badge{display:inline-flex;align-items:center;gap:6px;background:var(--cbg);color:var(--c);border-radius:999px;padding:3px 12px 3px 8px;font-weight:700;font-size:15px;line-height:1.2}
 .badge svg{font-size:18px}
 .ids{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:13px;color:var(--muted)}
 .ids .mono{color:var(--ink);font-size:14px;overflow-wrap:anywhere}
+.apps{border-top:1px solid var(--line);margin:0 14px;padding:4px 0 10px}
+.apps summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:700;padding:8px 0;color:var(--ink)}
+.apps summary::-webkit-details-marker{display:none}
+.apps summary .chev{transition:transform .15s;font-size:20px}
+.apps[open] summary .chev{transform:rotate(180deg)}
+.apps ul,.dl-apps{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.app-row{background:var(--surface-2);border-radius:12px;padding:10px 12px;display:grid;gap:6px;border-left:4px solid var(--c)}
+.app-row .top-line{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.app-row b{font-size:16px}
+.app-row .mono{font-size:13px;color:var(--muted)}
+.best{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--c)}
 .empty{background:var(--surface);border-radius:18px;padding:28px;text-align:center;color:var(--muted);font-weight:600;grid-column:1/-1}
 
 /* detail dialog */
-dialog{border:0;padding:0;border-radius:24px;max-width:560px;width:calc(100% - 32px);background:var(--surface);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog{border:0;padding:0;border-radius:24px;max-width:580px;width:calc(100% - 32px);background:var(--surface);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}
 dialog::backdrop{background:rgba(10,20,16,.55)}
 .dl{padding:22px;display:grid;gap:16px;max-height:88vh;overflow:auto}
 .dl-head{display:flex;gap:14px;align-items:center}
 .dl-head .av{width:72px;height:72px;font-size:28px}
 .dl-head h2{font-size:28px}
-.steps{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.dl h3{font-size:19px}
+.steps{list-style:none;margin:0;padding:0;display:grid}
 .steps li{display:grid;grid-template-columns:48px 1fr;gap:12px;align-items:center;position:relative;padding-block:6px}
 .steps li::before{content:"";position:absolute;left:23px;top:-6px;bottom:50%;width:3px;background:var(--line)}
 .steps li:first-child::before{display:none}
 .steps li.done::before,.steps li.cur::before{background:var(--c)}
 .steps .d{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;border:3px solid var(--line);background:var(--surface);color:var(--muted);position:relative;z-index:1}
 .steps .d svg{width:22px;height:22px}
-.steps li.done .d{background:var(--c);border-color:var(--c);color:var(--surface)}
-.steps li.cur .d{background:var(--c);border-color:var(--c);color:var(--surface);box-shadow:0 0 0 6px var(--cbg);width:48px;height:48px}
+.steps li.done .d,.steps li.cur .d{background:var(--c);border-color:var(--c);color:var(--surface)}
+.steps li.cur .d{box-shadow:0 0 0 6px var(--cbg)}
 .steps li span{font-weight:600}
 .steps li.up span{color:var(--muted);font-weight:500}
 .steps li.cur span{font-size:20px;font-weight:800;color:var(--c)}
@@ -203,48 +205,66 @@ dialog::backdrop{background:rgba(10,20,16,.55)}
 .dl-foot{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}
 
 /* admin */
-.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
-.vcard{background:var(--surface);border:0;border-radius:18px;padding:16px;text-align:left;display:grid;gap:8px;box-shadow:var(--shadow)}
-.vcard b{font-family:var(--f-display);font-size:30px;line-height:1}
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:end;background:var(--surface);border-radius:18px;padding:14px 16px;box-shadow:var(--shadow)}
+.filters label{display:grid;gap:4px;font-weight:600;font-size:14px;color:var(--muted);min-width:180px;flex:1}
+.filters select{border:2px solid var(--line);background:var(--surface-2);border-radius:12px;padding:10px 12px;font-size:17px;color:var(--ink);width:100%}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:16px}
+.kpi{background:var(--surface);border-radius:var(--r);padding:12px 14px;display:grid;gap:2px;box-shadow:var(--shadow);border-top:5px solid var(--c,var(--line))}
+.kpi b{font-family:var(--f-display);font-size:34px;line-height:1}
+.kpi span{font-size:14px;font-weight:600;color:var(--muted);line-height:1.2}
+.kpi small{font-size:13px;color:var(--muted)}
+.tbl-wrap{overflow-x:auto;background:var(--surface);border-radius:18px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:15px}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700;background:var(--surface-2)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--surface-2)}
+td .sbar{height:12px;margin:0;min-width:140px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px;color:var(--muted);margin:10px 0 0}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.legend i{width:12px;height:12px;border-radius:4px;background:var(--c)}
+.linkish{border:0;background:transparent;color:var(--accent);font-weight:700;padding:0}
 .upload{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .note{font-size:14px;color:var(--muted)}
 .foot{color:var(--muted);font-size:14px;padding-top:28px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.crumb{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-top:16px}
 
+@media (max-width:1000px){ .kpis{grid-template-columns:repeat(3,minmax(0,1fr))} }
 @media (max-width:960px){
   .hero{grid-template-columns:1fr}
   .main{grid-template-columns:1fr}
-  .side{position:static;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+  .side{position:static}
 }
 @media (max-width:760px){
   .road ol{grid-template-columns:1fr;gap:6px}
   .road ol::before{left:36px;right:auto;top:30px;bottom:30px;width:12px;height:auto;background-image:none}
-  .stop{grid-template-columns:88px 1fr auto;justify-items:start;text-align:left;align-items:center;gap:14px;padding:4px 10px 4px 0}
+  .stop{grid-template-columns:84px 1fr auto;justify-items:start;text-align:left;align-items:center;gap:14px;padding:4px 10px 4px 0}
   .stop b{margin:0;grid-column:3;grid-row:1}
   .stop .lbl{min-height:0;font-size:17px}
   .stop .txt{grid-column:2;grid-row:1}
   .stop .dot{width:84px;height:84px}
   .sec-head h2{font-size:24px}
+  .tri{grid-template-columns:1fr}
+  .tri div{grid-template-columns:auto 1fr;align-items:center;gap:2px 14px;border-top:0;border-left:6px solid var(--c)}
+  .tri b{grid-row:span 2}
 }
 @media (max-width:480px){
   body{font-size:16px}
-  .tri b{font-size:28px}
-  .tri span{font-size:13px}
-  .figs.lg svg{width:30px;height:38px}
-  .figs.md svg{width:24px;height:30px}
-  .brand small{display:none}
+  .brand{font-size:17px}
   .langs button{padding:4px 9px}
+  .top .btn span{display:none}
+  .top .btn{padding:6px 12px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cards{grid-template-columns:1fr}
 }
-@media (prefers-reduced-motion:no-preference){
-  .card{transition:transform .15s}
-  .figs svg{animation:pop .35s both}
-  @keyframes pop{from{transform:translateY(4px)}to{transform:none}}
-}
+@media (prefers-reduced-motion:no-preference){ .card-open,.co{transition:background .15s} }
 </style>
 </head>
 <body>
 <header class="top"><div class="wrap">
   <div class="brand"><span class="mark"><svg class="i" viewBox="0 0 24 24" style="font-size:22px"><path d="M4 20 10 4h4l6 16"/><path d="M12 8v2M12 13v2M12 18v2"/></svg></span>
-    <div><span data-t="appName"></span><small>PMIS · VLE</small></div></div>
+    <div>PMIS – CSC Project<small id="brandSub">VLE Dashboard</small></div></div>
   <div class="langs" role="group" aria-label="Language" id="langs"></div>
   <button class="btn" id="speak" hidden><svg class="i" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><span data-t="listen"></span></button>
   <button class="btn" id="logout" hidden><svg class="i" viewBox="0 0 24 24"><path d="M15 4h4v16h-4"/><path d="M10 8l-4 4 4 4M6 12h11"/></svg><span data-t="logout"></span></button>
@@ -258,122 +278,142 @@ dialog::backdrop{background:rgba(10,20,16,.55)}
 (() => {
 "use strict";
 /* ---------- config ---------- */
-const DEMO = window.PMIS_DEMO || null;          // embedded data -> demo mode (no server)
-const STAGE_KEYS = ["Applied","Shortlisted","Offer Letter Received","Offer Letter Accepted","Accepted","Joined"];
+const DEMO = window.PMIS_DEMO || null;   // embedded data -> demo mode (no server)
+const STAGE_KEYS = ["Applied","Shortlisted","Selected","Offer Letter Received","Offer Letter Accepted","Joining Verified"];
+const VERIFIED = 5;
 const ICONS = {
-  person:'<circle cx="12" cy="7" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>',
   s1:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 13h6M10 17h4"/>',
-  s2:'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
-  s3:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 8l9 6 9-6"/>',
-  s4:'<path d="M7 11v9H4v-9z"/><path d="M7 11l4-7c1.5 0 2.5 1 2.2 2.6L12.6 10H19a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 17.8 20H7"/>',
-  s5:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16.5 9.5"/>',
-  s6:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M3 12h18"/>',
+  s2:'<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2"/><circle cx="5" cy="18" r="1"/>',
+  s3:'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
+  s4:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 8l9 6 9-6"/>',
+  s5:'<path d="M7 11v9H4v-9z"/><path d="M7 11l4-7c1.5 0 2.5 1 2.2 2.6L12.6 10H19a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 17.8 20H7"/>',
+  s6:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M9 13.5l2 2 4-4"/>',
   search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
   building:'<path d="M4 21V5l8-2v18M12 9h8v12M7 8h2M7 12h2M7 16h2M15 13h2M15 17h2M2 21h20"/>',
   pin:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
-  x:'<path d="M6 6l12 12M18 6 6 18"/>', back:'<path d="M15 5l-7 7 7 7"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>', back:'<path d="M15 5l-7 7 7 7"/>', chev:'<path d="M6 9l6 6 6-6"/>',
   speak:'<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>',
-  up:'<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>'
+  up:'<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>', tag:'<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/>'
 };
-const ic = (k, cls="i") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k]}</svg>`;
+const ic = (k) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k]}</svg>`;
 
 /* ---------- words (English, Hindi, Kannada, Marathi) ---------- */
 const T = {
- en:{name:"EN",speech:"en-IN",appName:"My Interns",loginTitle:"Enter your VLE ID",vleLabel:"VLE ID",pinLabel:"4-digit PIN",open:"Open my dashboard",
-  demoHint:"Sample data. Tap an ID to try:",adminTry:"Admin view",hello:"Namaste",people:"young people are with you",
-  joined:"Joined work",onway:"On the way",applied:"Only applied",crowdTitle:"Each person is one figure",
-  goal:"{j} of {n} have joined work",journey:"Where is everyone now?",tapStop:"Tap a step to see those people",
-  find:"Find a person",findPh:"Type name, Candidate ID or Internship ID",companies:"Companies",projects:"CSC projects",
-  showing:"{n} people",everyone:"Everyone",listen:"Listen",logout:"Exit",candId:"Candidate ID",internId:"Internship ID",
-  company:"Company",project:"Project code",location:"Location",vleId:"VLE ID",step:"Step {i} of 6",next:"Next: {s}",done:"Journey complete",
-  none:"No one found. Check the number and try again.",close:"Close",more:"Show all",less:"Show less",
-  wrong:"VLE ID or PIN is wrong.",tooMany:"Too many wrong tries. Wait 15 minutes.",netErr:"Cannot reach the server. Check internet.",
-  updated:"Data updated",apps:"{n} applications",
-  say:"Namaste. {n} young people are with you. {j} have joined work. {o} are on the way. {a} have only applied.",
-  sayOne:"{name}. Company {c}. Now at step {i} of 6: {s}.",
-  st:["Applied","Shortlisted","Offer letter received","Offer letter accepted","Accepted","Joined"]},
- hi:{name:"हिं",speech:"hi-IN",appName:"मेरे इंटर्न",loginTitle:"अपना VLE ID डालें",vleLabel:"VLE ID",pinLabel:"4 अंकों का PIN",open:"मेरा डैशबोर्ड खोलें",
-  demoHint:"सैंपल डेटा। आज़माने के लिए कोई ID दबाएँ:",adminTry:"एडमिन व्यू",hello:"नमस्ते",people:"युवा आपके साथ जुड़े हैं",
-  joined:"काम पर लगे",onway:"प्रक्रिया में",applied:"सिर्फ़ आवेदन",crowdTitle:"हर व्यक्ति एक चित्र है",
-  goal:"{n} में से {j} काम पर लग गए",journey:"अभी कौन कहाँ है?",tapStop:"उन लोगों को देखने के लिए कदम दबाएँ",
-  find:"व्यक्ति खोजें",findPh:"नाम, Candidate ID या Internship ID लिखें",companies:"कंपनियाँ",projects:"CSC प्रोजेक्ट",
-  showing:"{n} लोग",everyone:"सभी",listen:"सुनें",logout:"बाहर",candId:"उम्मीदवार ID",internId:"इंटर्नशिप ID",
-  company:"कंपनी",project:"प्रोजेक्ट कोड",location:"स्थान",vleId:"VLE ID",step:"कदम {i} / 6",next:"अगला: {s}",done:"सफ़र पूरा",
-  none:"कोई नहीं मिला। नंबर जाँचकर फिर कोशिश करें।",close:"बंद करें",more:"सभी देखें",less:"कम देखें",
-  wrong:"VLE ID या PIN गलत है।",tooMany:"बहुत बार गलत। 15 मिनट रुकें।",netErr:"सर्वर से जुड़ नहीं पा रहे। इंटरनेट जाँचें।",
-  updated:"डेटा अपडेट",apps:"{n} आवेदन",
-  say:"नमस्ते। आपके साथ {n} युवा जुड़े हैं। {j} काम पर लग गए हैं। {o} प्रक्रिया में हैं। {a} ने सिर्फ़ आवेदन किया है।",
-  sayOne:"{name}. कंपनी {c}. अभी कदम {i}: {s}.",
-  st:["आवेदन किया","चयन सूची में","ऑफ़र लेटर मिला","ऑफ़र लेटर स्वीकार किया","स्वीकृत","जॉइन किया"]},
- kn:{name:"ಕ",speech:"kn-IN",appName:"ನನ್ನ ಇಂಟರ್ನ್‌ಗಳು",loginTitle:"ನಿಮ್ಮ VLE ID ನಮೂದಿಸಿ",vleLabel:"VLE ID",pinLabel:"4 ಅಂಕಿಯ PIN",open:"ನನ್ನ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ತೆರೆಯಿರಿ",
-  demoHint:"ಮಾದರಿ ಡೇಟಾ. ಪ್ರಯತ್ನಿಸಲು ಒಂದು ID ಒತ್ತಿ:",adminTry:"ಆಡ್ಮಿನ್ ನೋಟ",hello:"ನಮಸ್ಕಾರ",people:"ಯುವಜನರು ನಿಮ್ಮೊಂದಿಗಿದ್ದಾರೆ",
-  joined:"ಕೆಲಸಕ್ಕೆ ಸೇರಿದ್ದಾರೆ",onway:"ಪ್ರಕ್ರಿಯೆಯಲ್ಲಿ",applied:"ಅರ್ಜಿ ಮಾತ್ರ",crowdTitle:"ಪ್ರತಿ ವ್ಯಕ್ತಿ ಒಂದು ಚಿತ್ರ",
-  goal:"{n} ರಲ್ಲಿ {j} ಜನ ಕೆಲಸಕ್ಕೆ ಸೇರಿದ್ದಾರೆ",journey:"ಈಗ ಯಾರು ಎಲ್ಲಿದ್ದಾರೆ?",tapStop:"ಆ ಜನರನ್ನು ನೋಡಲು ಹಂತವನ್ನು ಒತ್ತಿ",
-  find:"ವ್ಯಕ್ತಿಯನ್ನು ಹುಡುಕಿ",findPh:"ಹೆಸರು, Candidate ID ಅಥವಾ Internship ID ಬರೆಯಿರಿ",companies:"ಕಂಪನಿಗಳು",projects:"CSC ಯೋಜನೆಗಳು",
-  showing:"{n} ಜನ",everyone:"ಎಲ್ಲರೂ",listen:"ಕೇಳಿ",logout:"ಹೊರಗೆ",candId:"ಅಭ್ಯರ್ಥಿ ID",internId:"ಇಂಟರ್ನ್‌ಶಿಪ್ ID",
-  company:"ಕಂಪನಿ",project:"ಯೋಜನಾ ಕೋಡ್",location:"ಸ್ಥಳ",vleId:"VLE ID",step:"ಹಂತ {i} / 6",next:"ಮುಂದೆ: {s}",done:"ಪ್ರಯಾಣ ಪೂರ್ಣ",
-  none:"ಯಾರೂ ಸಿಗಲಿಲ್ಲ. ಸಂಖ್ಯೆ ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",close:"ಮುಚ್ಚಿ",more:"ಎಲ್ಲಾ ನೋಡಿ",less:"ಕಡಿಮೆ ನೋಡಿ",
-  wrong:"VLE ID ಅಥವಾ PIN ತಪ್ಪಾಗಿದೆ.",tooMany:"ತುಂಬಾ ಬಾರಿ ತಪ್ಪು. 15 ನಿಮಿಷ ಕಾಯಿರಿ.",netErr:"ಸರ್ವರ್ ತಲುಪಲು ಆಗುತ್ತಿಲ್ಲ. ಇಂಟರ್ನೆಟ್ ಪರಿಶೀಲಿಸಿ.",
-  updated:"ಡೇಟಾ ನವೀಕರಣ",apps:"{n} ಅರ್ಜಿಗಳು",
-  say:"ನಮಸ್ಕಾರ. ನಿಮ್ಮೊಂದಿಗೆ {n} ಯುವಜನರು ಇದ್ದಾರೆ. {j} ಜನ ಕೆಲಸಕ್ಕೆ ಸೇರಿದ್ದಾರೆ. {o} ಜನ ಪ್ರಕ್ರಿಯೆಯಲ್ಲಿದ್ದಾರೆ. {a} ಜನ ಅರ್ಜಿ ಮಾತ್ರ ಸಲ್ಲಿಸಿದ್ದಾರೆ.",
-  sayOne:"{name}. ಕಂಪನಿ {c}. ಈಗ ಹಂತ {i}: {s}.",
-  st:["ಅರ್ಜಿ ಸಲ್ಲಿಸಲಾಗಿದೆ","ಆಯ್ಕೆ ಪಟ್ಟಿಯಲ್ಲಿ","ಆಫರ್ ಲೆಟರ್ ಬಂದಿದೆ","ಆಫರ್ ಲೆಟರ್ ಒಪ್ಪಿದ್ದಾರೆ","ಅಂಗೀಕರಿಸಲಾಗಿದೆ","ಸೇರಿದ್ದಾರೆ"]},
- mr:{name:"मरा",speech:"mr-IN",appName:"माझे इंटर्न",loginTitle:"तुमचा VLE ID टाका",vleLabel:"VLE ID",pinLabel:"4 अंकी PIN",open:"माझा डॅशबोर्ड उघडा",
-  demoHint:"नमुना डेटा. वापरून पाहण्यासाठी एक ID दाबा:",adminTry:"ॲडमिन व्ह्यू",hello:"नमस्कार",people:"तरुण तुमच्याशी जोडलेले आहेत",
-  joined:"कामावर रुजू",onway:"प्रक्रियेत",applied:"फक्त अर्ज",crowdTitle:"प्रत्येक व्यक्ती एक चित्र",
-  goal:"{n} पैकी {j} कामावर रुजू झाले",journey:"आता कोण कुठे आहे?",tapStop:"ती माणसे पाहण्यासाठी टप्पा दाबा",
-  find:"व्यक्ती शोधा",findPh:"नाव, Candidate ID किंवा Internship ID लिहा",companies:"कंपन्या",projects:"CSC प्रकल्प",
-  showing:"{n} लोक",everyone:"सर्व",listen:"ऐका",logout:"बाहेर",candId:"उमेदवार ID",internId:"इंटर्नशिप ID",
-  company:"कंपनी",project:"प्रकल्प कोड",location:"ठिकाण",vleId:"VLE ID",step:"टप्पा {i} / 6",next:"पुढे: {s}",done:"प्रवास पूर्ण",
-  none:"कोणी सापडले नाही. नंबर तपासून पुन्हा प्रयत्न करा.",close:"बंद करा",more:"सर्व पहा",less:"कमी पहा",
-  wrong:"VLE ID किंवा PIN चुकीचा आहे.",tooMany:"खूप वेळा चूक. 15 मिनिटे थांबा.",netErr:"सर्व्हरशी जोडता येत नाही. इंटरनेट तपासा.",
-  updated:"डेटा अपडेट",apps:"{n} अर्ज",
-  say:"नमस्कार. तुमच्याशी {n} तरुण जोडलेले आहेत. {j} कामावर रुजू झाले. {o} प्रक्रियेत आहेत. {a} यांनी फक्त अर्ज केला आहे.",
-  sayOne:"{name}. कंपनी {c}. आता टप्पा {i}: {s}.",
-  st:["अर्ज केला","निवड यादीत","ऑफर लेटर मिळाले","ऑफर लेटर स्वीकारले","स्वीकृत","रुजू झाले"]}
+ en:{name:"EN",speech:"en-IN",sub:"VLE Dashboard",landEyebrow:"PMIS – CSC Project",landTitle:"VLE Dashboard",
+  landText:"See the internship status of every candidate who applied through your CSC.",
+  vleLabel:"VLE ID",pinLabel:"Password / PIN",open:"Log in",demoHint:"Sample data. Tap an ID to try:",adminTry:"Admin",
+  hello:"Namaste",people:"candidates applied through you",
+  m_verified:"Joining verified",m_selected:"Selected, not yet joined",m_applied:"Applied to internships",
+  goal:"{j} of {n} candidates: joining verified",journey:"Where is every candidate now?",
+  journeyNote:"Each candidate is counted once, at the furthest step they have reached.",tapStop:"Tap a step to see those candidates",
+  find:"Find a candidate",findPh:"Type name, Candidate ID or Internship ID",companies:"Companies",
+  showing:"{n} candidates",everyone:"Everyone",listen:"Listen",logout:"Exit",candId:"Candidate ID",internId:"Internship ID",
+  company:"Company",project:"Project code",state:"State",district:"District",vleId:"VLE ID",step:"Step {i} of 6",next:"Next: {s}",done:"Joining verified",
+  none:"No candidate found. Check the number and try again.",close:"Close",more:"Show all",less:"Show less",
+  wrong:"VLE ID or password is wrong.",tooMany:"Too many wrong tries. Wait 15 minutes.",netErr:"Cannot reach the server. Check internet.",
+  updated:"Data updated",nApps:"{n} internship applications",allApps:"All applications",furthest:"Furthest",
+  say:"Namaste. {n} candidates applied through you. Joining verified: {j}. Selected, not yet joined: {o}. Applied to internships: {a}.",
+  sayOne:"{name}. {k} applications. Furthest step: {s}, at {c}.",
+  st:["Applied","Shortlisted","Selected","Offer letter received","Offer letter accepted","Joining verified"]},
+ hi:{name:"हिं",speech:"hi-IN",sub:"VLE डैशबोर्ड",landEyebrow:"PMIS – CSC प्रोजेक्ट",landTitle:"VLE डैशबोर्ड",
+  landText:"आपके CSC के माध्यम से आवेदन करने वाले हर उम्मीदवार की इंटर्नशिप स्थिति देखें।",
+  vleLabel:"VLE ID",pinLabel:"पासवर्ड / PIN",open:"लॉग इन करें",demoHint:"सैंपल डेटा। आज़माने के लिए कोई ID दबाएँ:",adminTry:"एडमिन",
+  hello:"नमस्ते",people:"उम्मीदवारों ने आपके माध्यम से आवेदन किया",
+  m_verified:"जॉइनिंग सत्यापित",m_selected:"चयनित, अभी जॉइन नहीं",m_applied:"इंटर्नशिप के लिए आवेदन",
+  goal:"{n} में से {j} उम्मीदवार: जॉइनिंग सत्यापित",journey:"अभी कौन उम्मीदवार कहाँ है?",
+  journeyNote:"हर उम्मीदवार एक बार गिना गया है, उस कदम पर जहाँ तक वह सबसे आगे पहुँचा है।",tapStop:"उन उम्मीदवारों को देखने के लिए कदम दबाएँ",
+  find:"उम्मीदवार खोजें",findPh:"नाम, Candidate ID या Internship ID लिखें",companies:"कंपनियाँ",
+  showing:"{n} उम्मीदवार",everyone:"सभी",listen:"सुनें",logout:"बाहर",candId:"उम्मीदवार ID",internId:"इंटर्नशिप ID",
+  company:"कंपनी",project:"प्रोजेक्ट कोड",state:"राज्य",district:"ज़िला",vleId:"VLE ID",step:"कदम {i} / 6",next:"अगला: {s}",done:"जॉइनिंग सत्यापित",
+  none:"कोई उम्मीदवार नहीं मिला। नंबर जाँचकर फिर कोशिश करें।",close:"बंद करें",more:"सभी देखें",less:"कम देखें",
+  wrong:"VLE ID या पासवर्ड गलत है।",tooMany:"बहुत बार गलत। 15 मिनट रुकें।",netErr:"सर्वर से जुड़ नहीं पा रहे। इंटरनेट जाँचें।",
+  updated:"डेटा अपडेट",nApps:"{n} इंटर्नशिप आवेदन",allApps:"सभी आवेदन",furthest:"सबसे आगे",
+  say:"नमस्ते। {n} उम्मीदवारों ने आपके माध्यम से आवेदन किया। जॉइनिंग सत्यापित: {j}। चयनित, अभी जॉइन नहीं: {o}। इंटर्नशिप के लिए आवेदन: {a}।",
+  sayOne:"{name}. {k} आवेदन. सबसे आगे का कदम: {s}, {c} में.",
+  st:["आवेदन किया","शॉर्टलिस्ट","चयनित","ऑफ़र लेटर मिला","ऑफ़र लेटर स्वीकार किया","जॉइनिंग सत्यापित"]},
+ kn:{name:"ಕ",speech:"kn-IN",sub:"VLE ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",landEyebrow:"PMIS – CSC ಯೋಜನೆ",landTitle:"VLE ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+  landText:"ನಿಮ್ಮ CSC ಮೂಲಕ ಅರ್ಜಿ ಸಲ್ಲಿಸಿದ ಪ್ರತಿ ಅಭ್ಯರ್ಥಿಯ ಇಂಟರ್ನ್‌ಶಿಪ್ ಸ್ಥಿತಿಯನ್ನು ನೋಡಿ.",
+  vleLabel:"VLE ID",pinLabel:"ಪಾಸ್‌ವರ್ಡ್ / PIN",open:"ಲಾಗಿನ್ ಮಾಡಿ",demoHint:"ಮಾದರಿ ಡೇಟಾ. ಪ್ರಯತ್ನಿಸಲು ಒಂದು ID ಒತ್ತಿ:",adminTry:"ಆಡ್ಮಿನ್",
+  hello:"ನಮಸ್ಕಾರ",people:"ಅಭ್ಯರ್ಥಿಗಳು ನಿಮ್ಮ ಮೂಲಕ ಅರ್ಜಿ ಸಲ್ಲಿಸಿದ್ದಾರೆ",
+  m_verified:"ಸೇರ್ಪಡೆ ದೃಢೀಕರಿಸಲಾಗಿದೆ",m_selected:"ಆಯ್ಕೆಯಾಗಿದೆ, ಇನ್ನೂ ಸೇರಿಲ್ಲ",m_applied:"ಇಂಟರ್ನ್‌ಶಿಪ್‌ಗೆ ಅರ್ಜಿ",
+  goal:"{n} ರಲ್ಲಿ {j} ಅಭ್ಯರ್ಥಿಗಳು: ಸೇರ್ಪಡೆ ದೃಢೀಕರಿಸಲಾಗಿದೆ",journey:"ಈಗ ಯಾವ ಅಭ್ಯರ್ಥಿ ಎಲ್ಲಿದ್ದಾರೆ?",
+  journeyNote:"ಪ್ರತಿ ಅಭ್ಯರ್ಥಿಯನ್ನು ಒಮ್ಮೆ ಮಾತ್ರ, ಅವರು ತಲುಪಿದ ಅತ್ಯಂತ ಮುಂದಿನ ಹಂತದಲ್ಲಿ ಎಣಿಸಲಾಗಿದೆ.",tapStop:"ಆ ಅಭ್ಯರ್ಥಿಗಳನ್ನು ನೋಡಲು ಹಂತವನ್ನು ಒತ್ತಿ",
+  find:"ಅಭ್ಯರ್ಥಿಯನ್ನು ಹುಡುಕಿ",findPh:"ಹೆಸರು, Candidate ID ಅಥವಾ Internship ID ಬರೆಯಿರಿ",companies:"ಕಂಪನಿಗಳು",
+  showing:"{n} ಅಭ್ಯರ್ಥಿಗಳು",everyone:"ಎಲ್ಲರೂ",listen:"ಕೇಳಿ",logout:"ಹೊರಗೆ",candId:"ಅಭ್ಯರ್ಥಿ ID",internId:"ಇಂಟರ್ನ್‌ಶಿಪ್ ID",
+  company:"ಕಂಪನಿ",project:"ಯೋಜನಾ ಕೋಡ್",state:"ರಾಜ್ಯ",district:"ಜಿಲ್ಲೆ",vleId:"VLE ID",step:"ಹಂತ {i} / 6",next:"ಮುಂದೆ: {s}",done:"ಸೇರ್ಪಡೆ ದೃಢೀಕರಿಸಲಾಗಿದೆ",
+  none:"ಯಾವ ಅಭ್ಯರ್ಥಿಯೂ ಸಿಗಲಿಲ್ಲ. ಸಂಖ್ಯೆ ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",close:"ಮುಚ್ಚಿ",more:"ಎಲ್ಲಾ ನೋಡಿ",less:"ಕಡಿಮೆ ನೋಡಿ",
+  wrong:"VLE ID ಅಥವಾ ಪಾಸ್‌ವರ್ಡ್ ತಪ್ಪಾಗಿದೆ.",tooMany:"ತುಂಬಾ ಬಾರಿ ತಪ್ಪು. 15 ನಿಮಿಷ ಕಾಯಿರಿ.",netErr:"ಸರ್ವರ್ ತಲುಪಲು ಆಗುತ್ತಿಲ್ಲ. ಇಂಟರ್ನೆಟ್ ಪರಿಶೀಲಿಸಿ.",
+  updated:"ಡೇಟಾ ನವೀಕರಣ",nApps:"{n} ಇಂಟರ್ನ್‌ಶಿಪ್ ಅರ್ಜಿಗಳು",allApps:"ಎಲ್ಲಾ ಅರ್ಜಿಗಳು",furthest:"ಅತ್ಯಂತ ಮುಂದೆ",
+  say:"ನಮಸ್ಕಾರ. {n} ಅಭ್ಯರ್ಥಿಗಳು ನಿಮ್ಮ ಮೂಲಕ ಅರ್ಜಿ ಸಲ್ಲಿಸಿದ್ದಾರೆ. ಸೇರ್ಪಡೆ ದೃಢೀಕರಿಸಲಾಗಿದೆ: {j}. ಆಯ್ಕೆಯಾಗಿದೆ, ಇನ್ನೂ ಸೇರಿಲ್ಲ: {o}. ಇಂಟರ್ನ್‌ಶಿಪ್‌ಗೆ ಅರ್ಜಿ: {a}.",
+  sayOne:"{name}. {k} ಅರ್ಜಿಗಳು. ಅತ್ಯಂತ ಮುಂದಿನ ಹಂತ: {s}, {c}.",
+  st:["ಅರ್ಜಿ ಸಲ್ಲಿಸಲಾಗಿದೆ","ಶಾರ್ಟ್‌ಲಿಸ್ಟ್","ಆಯ್ಕೆಯಾಗಿದೆ","ಆಫರ್ ಲೆಟರ್ ಬಂದಿದೆ","ಆಫರ್ ಲೆಟರ್ ಒಪ್ಪಿದ್ದಾರೆ","ಸೇರ್ಪಡೆ ದೃಢೀಕರಿಸಲಾಗಿದೆ"]},
+ mr:{name:"मरा",speech:"mr-IN",sub:"VLE डॅशबोर्ड",landEyebrow:"PMIS – CSC प्रकल्प",landTitle:"VLE डॅशबोर्ड",
+  landText:"तुमच्या CSC मार्फत अर्ज केलेल्या प्रत्येक उमेदवाराची इंटर्नशिप स्थिती पहा.",
+  vleLabel:"VLE ID",pinLabel:"पासवर्ड / PIN",open:"लॉग इन करा",demoHint:"नमुना डेटा. वापरून पाहण्यासाठी एक ID दाबा:",adminTry:"ॲडमिन",
+  hello:"नमस्कार",people:"उमेदवारांनी तुमच्यामार्फत अर्ज केला",
+  m_verified:"जॉइनिंग पडताळले",m_selected:"निवड झाली, अजून रुजू नाही",m_applied:"इंटर्नशिपसाठी अर्ज",
+  goal:"{n} पैकी {j} उमेदवार: जॉइनिंग पडताळले",journey:"आता कोणता उमेदवार कुठे आहे?",
+  journeyNote:"प्रत्येक उमेदवार एकदाच मोजला आहे, तो जिथपर्यंत सर्वात पुढे पोहोचला त्या टप्प्यावर.",tapStop:"ते उमेदवार पाहण्यासाठी टप्पा दाबा",
+  find:"उमेदवार शोधा",findPh:"नाव, Candidate ID किंवा Internship ID लिहा",companies:"कंपन्या",
+  showing:"{n} उमेदवार",everyone:"सर्व",listen:"ऐका",logout:"बाहेर",candId:"उमेदवार ID",internId:"इंटर्नशिप ID",
+  company:"कंपनी",project:"प्रकल्प कोड",state:"राज्य",district:"जिल्हा",vleId:"VLE ID",step:"टप्पा {i} / 6",next:"पुढे: {s}",done:"जॉइनिंग पडताळले",
+  none:"कोणताही उमेदवार सापडला नाही. नंबर तपासून पुन्हा प्रयत्न करा.",close:"बंद करा",more:"सर्व पहा",less:"कमी पहा",
+  wrong:"VLE ID किंवा पासवर्ड चुकीचा आहे.",tooMany:"खूप वेळा चूक. 15 मिनिटे थांबा.",netErr:"सर्व्हरशी जोडता येत नाही. इंटरनेट तपासा.",
+  updated:"डेटा अपडेट",nApps:"{n} इंटर्नशिप अर्ज",allApps:"सर्व अर्ज",furthest:"सर्वात पुढे",
+  say:"नमस्कार. {n} उमेदवारांनी तुमच्यामार्फत अर्ज केला. जॉइनिंग पडताळले: {j}. निवड झाली, अजून रुजू नाही: {o}. इंटर्नशिपसाठी अर्ज: {a}.",
+  sayOne:"{name}. {k} अर्ज. सर्वात पुढचा टप्पा: {s}, {c}.",
+  st:["अर्ज केला","शॉर्टलिस्ट","निवड झाली","ऑफर लेटर मिळाले","ऑफर लेटर स्वीकारले","जॉइनिंग पडताळले"]}
 };
 
-/* ---------- state ---------- */
+/* ---------- state + helpers ---------- */
 const store = {get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 const sess = {get(k){try{return sessionStorage.getItem(k)}catch(e){return null}}, set(k,v){try{v==null?sessionStorage.removeItem(k):sessionStorage.setItem(k,v)}catch(e){}}};
-const S = {lang: T[store.get("pmis.lang")] ? store.get("pmis.lang") : "en", token: sess.get("pmis.token"), role: sess.get("pmis.role"),
-  data:null, vles:null, filter:{stage:null, company:null, project:null, q:""}, coAll:false, err:""};
+const S = {lang: T[store.get("pmis.lang")] ? store.get("pmis.lang") : "en", token: sess.get("pmis.token"), role: sess.get("pmis.role"), me: sess.get("pmis.me"),
+  data:null, cands:[], overview:null, af:{state:"",district:""}, filter:{stage:null, company:null, q:""}, coAll:false, err:""};
 const t = (k, vars={}) => String(T[S.lang][k] ?? T.en[k]).replace(/\{(\w+)\}/g, (_, v) => vars[v] ?? "");
 const stLabel = i => T[S.lang].st[i];
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const stageIdx = s => Math.max(0, STAGE_KEYS.indexOf(s));
 const cv = i => `--c:var(--s${i+1});--cbg:var(--s${i+1}-bg)`;
-const initials = n => n.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+const initials = n => String(n||"?").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+const pct = (a,b) => b ? Math.round(a/b*100) : 0;
 const $ = s => document.querySelector(s);
 const app = $("#app");
 
-/* ---------- data access (server or demo) ---------- */
+/* group application rows into candidates; each candidate is shown at their furthest step */
+function groupCandidates(apps){
+  const m = new Map();
+  apps.forEach(a => { const c = m.get(a.candidate_id) || {id:a.candidate_id, name:a.candidate_name, vle_id:a.vle_id, state:a.vle_location, district:a.vle_district, project:a.project_code, apps:[]}; c.apps.push(a); m.set(a.candidate_id, c); });
+  return [...m.values()].map(c => { c.apps.sort((x,y)=>stageIdx(y.status)-stageIdx(x.status) || String(x.company_name).localeCompare(y.company_name)); c.best = stageIdx(c.apps[0].status); c.top = c.apps[0]; return c; });
+}
+function summarise(cands, apps){
+  const counts = STAGE_KEYS.map(()=>0); cands.forEach(c => counts[c.best]++);
+  return {counts, people:cands.length, records:apps.length, verified:counts[5], selected:counts[2]+counts[3]+counts[4], applied:counts[0]+counts[1]};
+}
+
+/* ---------- data access (server or embedded demo) ---------- */
 const api = {
-  async login(vle, pin){
+  async login(id, pin){
     if (DEMO){
-      if (vle === "ADMIN") return {token:"demo", role:"admin", vle_id:"ADMIN"};
-      if (!DEMO.applications.some(a => a.vle_id === vle)) throw {status:401};
-      return {token:"demo", role:"vle", vle_id:vle};
+      if (id === "ADMIN") return {token:"demo", role:"admin", vle_id:"ADMIN"};
+      if (!DEMO.applications.some(a => a.vle_id === id)) throw {status:401};
+      return {token:"demo", role:"vle", vle_id:id};
     }
-    const r = await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({vle_id:vle,pin})});
+    const r = await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({vle_id:id,pin})});
     if (!r.ok) throw {status:r.status};
     return r.json();
   },
   async dashboard(vle){
     if (DEMO){
       const target = S.role === "admin" ? vle : S.me;
-      const apps = DEMO.applications.filter(a => a.vle_id === target).sort((a,b)=>a.candidate_name.localeCompare(b.candidate_name));
-      return {vle:{vle_id:target, location:apps[0]?.vle_location||""}, stages:STAGE_KEYS, applications:apps, updated:DEMO.updated};
+      const apps = DEMO.applications.filter(a => a.vle_id === target);
+      return {vle:{vle_id:target, location:apps[0]?.vle_location||"", district:apps[0]?.vle_district||""}, applications:apps, updated:DEMO.updated};
     }
     return this._get("/api/dashboard" + (vle ? "?vle="+encodeURIComponent(vle) : ""));
   },
-  async vles(){
-    if (DEMO){
-      const m = new Map();
-      DEMO.applications.forEach(a => { const v = m.get(a.vle_id) || {vle_id:a.vle_id, location:a.vle_location, records:0, joined:0}; v.records++; if (a.status==="Joined") v.joined++; m.set(a.vle_id, v); });
-      return [...m.values()].sort((a,b)=>a.vle_id.localeCompare(b.vle_id));
-    }
-    return this._get("/api/vles");
+  async overview(){
+    if (DEMO) return {applications:DEMO.applications, updated:DEMO.updated};
+    return this._get("/api/admin/overview");
   },
   async upload(file){
     const fd = new FormData(); fd.append("file", file);
@@ -387,136 +427,126 @@ const api = {
     return r.json();
   }
 };
-S.me = sess.get("pmis.me");
 
 /* ---------- chrome ---------- */
 function renderChrome(){
   document.documentElement.lang = S.lang;
   $("#langs").innerHTML = Object.keys(T).map(k => `<button data-lang="${k}" aria-pressed="${k===S.lang}" lang="${k}">${T[k].name}</button>`).join("");
   document.querySelectorAll("[data-t]").forEach(el => el.textContent = t(el.dataset.t));
-  const inside = !!S.token;
-  $("#logout").hidden = !inside;
-  $("#speak").hidden = !(inside && S.data);
+  $("#brandSub").textContent = S.role === "admin" && !S.data ? "Admin · Project overview" : t("sub");
+  $("#logout").hidden = !S.token;
+  $("#speak").hidden = !(S.token && S.data);
 }
 $("#langs").addEventListener("click", e => { const b = e.target.closest("[data-lang]"); if(!b) return; S.lang = b.dataset.lang; store.set("pmis.lang", S.lang); render(); });
 $("#logout").addEventListener("click", logout);
-$("#speak").addEventListener("click", () => { if (S.data) speak(summarySpeech()); });
+$("#speak").addEventListener("click", () => { if (S.data){ const s = summarise(S.cands, S.data.applications); speak(t("say",{n:s.people,j:s.verified,o:s.selected,a:s.applied})); } });
 
-function logout(){ S.token=null; S.role=null; S.me=null; S.data=null; S.vles=null; ["pmis.token","pmis.role","pmis.me"].forEach(k=>sess.set(k,null)); resetFilters(); render(); }
-function resetFilters(){ S.filter = {stage:null, company:null, project:null, q:""}; S.coAll=false; }
-
+function logout(){ Object.assign(S,{token:null,role:null,me:null,data:null,cands:[],overview:null,err:""}); ["pmis.token","pmis.role","pmis.me"].forEach(k=>sess.set(k,null)); resetFilters(); render(); }
+function resetFilters(){ S.filter = {stage:null, company:null, q:""}; S.coAll=false; }
 function speak(text){
   try{
     const synth = window.speechSynthesis; if (!synth) return;
     synth.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    const want = T[S.lang].speech, voices = synth.getVoices();
-    const v = voices.find(x => x.lang === want) || voices.find(x => x.lang.startsWith(want.slice(0,2))) ||
-              (S.lang==="mr" && voices.find(x => x.lang.startsWith("hi")));
+    const u = new SpeechSynthesisUtterance(text), want = T[S.lang].speech, voices = synth.getVoices();
+    const v = voices.find(x => x.lang === want) || voices.find(x => x.lang.startsWith(want.slice(0,2))) || (S.lang==="mr" && voices.find(x => x.lang.startsWith("hi")));
     if (v) u.voice = v; u.lang = v ? v.lang : want; u.rate = .92;
     synth.speak(u);
   }catch(e){}
 }
 
-/* ---------- login ---------- */
+/* ---------- landing / login ---------- */
 function renderLogin(){
   const ids = DEMO ? [...new Set(DEMO.applications.map(a=>a.vle_id))].sort() : [];
   app.innerHTML = `
-  <section class="login"><form class="login-card" id="loginForm" autocomplete="off">
-    <div class="login-art" aria-hidden="true">${[1,2,3,4,5,6].map(i=>`<span style="height:${18+i*8}px;background:var(--s${i})"></span>`).join("")}</div>
-    <h1>${t("loginTitle")}</h1>
-    <div class="field"><label for="vleIn">${t("vleLabel")}</label>
-      <input id="vleIn" inputmode="text" placeholder="VLEKA20261" required></div>
-    ${DEMO ? "" : `<div class="field"><label for="pinIn">${t("pinLabel")}</label>
-      <input id="pinIn" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••" required></div>`}
-    <div class="err" role="alert" id="loginErr">${esc(S.err)}</div>
-    <button class="btn primary" type="submit">${t("open")} ${ic("back").replace('class="i"','class="i" style="transform:rotate(180deg)"')}</button>
-    ${DEMO ? `<div class="hint">${t("demoHint")}</div><div class="chips">${ids.map(id=>`<button type="button" class="chip" data-id="${id}">${id}</button>`).join("")}
-      <button type="button" class="chip" data-id="ADMIN">${t("adminTry")}</button></div>` : ""}
-  </form></section>`;
-  const f = $("#loginForm");
-  f.addEventListener("submit", e => { e.preventDefault(); doLogin($("#vleIn").value, $("#pinIn")?.value || ""); });
-  f.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => { $("#vleIn").value = c.dataset.id; doLogin(c.dataset.id, ""); }));
+  <section class="login"><div class="login-card">
+    <div class="login-band"><span class="eyebrow">${t("landEyebrow")}</span><h1>${t("landTitle")}</h1><p>${t("landText")}</p></div>
+    <div class="login-steps" aria-hidden="true">${[1,2,3,4,5,6].map(i=>`<span style="background:var(--s${i})"></span>`).join("")}</div>
+    <form class="login-form" id="loginForm" autocomplete="off">
+      <div class="field"><label for="vleIn">${t("vleLabel")}</label><input id="vleIn" autocapitalize="characters" placeholder="VLEKA20261" required></div>
+      ${DEMO ? "" : `<div class="field"><label for="pinIn">${t("pinLabel")}</label><input id="pinIn" type="password" maxlength="40" placeholder="••••" required></div>`}
+      <div class="err" role="alert">${esc(S.err)}</div>
+      <button class="btn primary" type="submit">${t("open")}</button>
+      ${DEMO ? `<div class="hint">${t("demoHint")}</div><div class="chips">${ids.map(id=>`<button type="button" class="chip" data-id="${id}">${id}</button>`).join("")}<button type="button" class="chip" data-id="ADMIN">${t("adminTry")}</button></div>` : ""}
+    </form></div></section>`;
+  $("#loginForm").addEventListener("submit", e => { e.preventDefault(); doLogin($("#vleIn").value, $("#pinIn")?.value || ""); });
+  app.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => doLogin(c.dataset.id, "")));
 }
-async function doLogin(vle, pin){
-  vle = vle.trim().toUpperCase(); S.err = "";
+async function doLogin(id, pin){
+  id = id.trim().toUpperCase(); S.err = "";
   try{
-    const r = await api.login(vle, pin);
-    S.token = r.token; S.role = r.role; S.me = r.vle_id;
+    const r = await api.login(id, pin);
+    Object.assign(S,{token:r.token, role:r.role, me:r.vle_id});
     sess.set("pmis.token", r.token); sess.set("pmis.role", r.role); sess.set("pmis.me", r.vle_id);
     await load();
   }catch(e){
-    S.err = e.status === 429 ? t("tooMany") : e.status === 401 ? t("wrong") : t("netErr");
-    render(); $("#vleIn") && ($("#vleIn").value = vle);
+    S.err = e.status === 429 ? t("tooMany") : (e.status === 401 || e.status === 422) ? t("wrong") : t("netErr");
+    render(); if ($("#vleIn")) $("#vleIn").value = id;
   }
 }
 async function load(vle){
   try{
-    if (S.role === "admin" && !vle){ S.data = null; S.vles = await api.vles(); }
-    else { S.data = await api.dashboard(vle); resetFilters(); }
-  }catch(e){ if (e.status !== 401){ S.err = t("netErr"); } }
+    if (S.role === "admin" && !vle){ S.data = null; S.overview = await api.overview(); }
+    else { S.data = await api.dashboard(vle); S.cands = groupCandidates(S.data.applications); resetFilters(); }
+  }catch(e){ if (e.status !== 401) S.err = t("netErr"); }
   render(); window.scrollTo({top:0});
 }
 
-/* ---------- dashboard ---------- */
-function stats(apps){
-  const counts = STAGE_KEYS.map(()=>0); apps.forEach(a => counts[stageIdx(a.status)]++);
-  const people = new Set(apps.map(a=>a.candidate_id)).size;
-  return {counts, people, records:apps.length, joined:counts[5], onway:counts[1]+counts[2]+counts[3]+counts[4], applied:counts[0]};
-}
-function summarySpeech(){
-  const s = stats(S.data.applications);
-  return t("say",{n:s.people,j:s.joined,o:s.onway,a:s.applied});
-}
+/* ---------- shared pieces ---------- */
 function ring(j, n){
   const r = 26, c = 2*Math.PI*r, p = n ? j/n : 0;
   return `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--surface)" stroke-width="9"/>
    <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--s6)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(c*p).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 32 32)"/>
    <text x="32" y="37" text-anchor="middle" font-size="15" font-weight="800" fill="var(--ink)" font-family="Baloo 2, sans-serif">${Math.round(p*100)}%</text></svg>`;
 }
+function road(s, clickable){
+  const tag = clickable ? "button" : "div";
+  return `<div class="road"><ol>${STAGE_KEYS.map((_,i)=>`<li><${tag} class="stop ${s.counts[i]?"":"zero"}" ${clickable?`data-stage="${i}" aria-pressed="${S.filter.stage===i}"`:""} style="${cv(i)}">
+      <span class="dot">${ic("s"+(i+1))}<span class="step">${i+1}</span></span>
+      <span class="txt"><span class="lbl">${stLabel(i)}</span><br><span class="pct num">${pct(s.counts[i],s.people)}%</span></span>
+      <b class="num">${s.counts[i]}</b></${tag}></li>`).join("")}</ol>
+    <div class="bar100" aria-hidden="true">${s.counts.map((c,i)=>c?`<i style="${cv(i)};width:${c/s.people*100}%"></i>`:"").join("")}</div></div>`;
+}
+const stackBar = counts => { const n = counts.reduce((a,b)=>a+b,0)||1; return `<span class="sbar">${counts.map((c,i)=>c?`<i style="${cv(i)};width:${c/n*100}%"></i>`:"").join("")}</span>`; };
+const badge = i => `<span class="badge" style="${cv(i)}">${ic("s"+(i+1))}${stLabel(i)}</span>`;
+const track = (i, cls="") => `<span class="track ${cls}" aria-hidden="true" style="${cv(i)}">${STAGE_KEYS.map((_,j)=>`<i class="${j<=i?"on":""}"></i>`).join("")}</span>`;
+function appRow(a, isBest){
+  const i = stageIdx(a.status);
+  return `<li class="app-row" style="${cv(i)}"><span class="top-line"><b>${esc(a.company_name)}</b>${isBest?`<span class="best">${t("furthest")}</span>`:""}</span>
+    <span class="top-line"><span class="mono">${esc(a.internship_id)}</span>${badge(i)}</span>${track(i,"sm")}</li>`;
+}
+
+/* ---------- VLE dashboard ---------- */
 function renderDashboard(){
-  const D = S.data, apps = D.applications, s = stats(apps);
-  const sorted = [...apps].sort((a,b)=>stageIdx(b.status)-stageIdx(a.status));
-  const max = Math.max(1,...s.counts);
-  // companies
+  const D = S.data, apps = D.applications, s = summarise(S.cands, apps);
   const coMap = new Map();
   apps.forEach(a => { const k=a.company_name||"—"; const v=coMap.get(k)||{n:0,c:[0,0,0,0,0,0]}; v.n++; v.c[stageIdx(a.status)]++; coMap.set(k,v); });
   const cos = [...coMap.entries()].sort((a,b)=>b[1].n-a[1].n || a[0].localeCompare(b[0]));
-  const shownCos = S.coAll ? cos : cos.slice(0,7);
-  const pjMap = new Map(); apps.forEach(a => pjMap.set(a.project_code||"—",(pjMap.get(a.project_code||"—")||0)+1));
-  const pjs = [...pjMap.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+  const shownCos = S.coAll ? cos : cos.slice(0,8);
+  const projects = [...new Set(apps.map(a=>a.project_code).filter(Boolean))];
+  const place = [D.vle.district, D.vle.location].filter(Boolean).join(", ");
 
   app.innerHTML = `
-  ${S.role==="admin" ? `<div style="padding-top:16px"><button class="btn" id="backAll">${ic("back")} All VLEs</button></div>` : ""}
+  ${S.role==="admin" ? `<div class="crumb"><button class="btn" id="backAll">${ic("back")} Project overview</button></div>` : ""}
   <section class="hero">
     <div class="hello">
-      <div class="who"><span>${t("hello")} 🙏</span><span class="tag mono">${esc(D.vle.vle_id)}</span><span class="tag">${ic("pin")} ${esc(D.vle.location)}</span></div>
+      <div class="who"><span>${t("hello")} 🙏</span><span class="tag mono">${esc(D.vle.vle_id)}</span>
+        ${place?`<span class="tag">${ic("pin")} ${esc(place)}</span>`:""}
+        ${projects.length===1?`<span class="tag">${ic("tag")} <span class="mono">${esc(projects[0])}</span></span>`:""}</div>
       <div class="big"><b class="num">${s.people}</b><span>${t("people")}</span></div>
-      <div class="tri">
-        <div style="--c:var(--s6)"><b class="num">${s.joined}</b><span>${t("joined")}</span></div>
-        <div style="--c:var(--s3)"><b class="num">${s.onway}</b><span>${t("onway")}</span></div>
-        <div style="--c:var(--s1)"><b class="num">${s.applied}</b><span>${t("applied")}</span></div>
-      </div>
-      <div class="goal">${ring(s.joined, s.records)}<p>${t("goal",{j:s.joined,n:s.records})}</p></div>
     </div>
-    <div class="crowd">
-      <div class="crowd-head"><h2>${t("crowdTitle")}</h2>${s.records!==s.people?`<span class="hint">${t("apps",{n:s.records})}</span>`:""}</div>
-      <div class="figs ${s.records<=40?"lg":s.records<=90?"md":""}" role="img" aria-label="${esc(t("say",{n:s.people,j:s.joined,o:s.onway,a:s.applied}))}">
-        ${sorted.map((a,k)=>`<svg viewBox="0 0 24 30" style="color:var(--s${stageIdx(a.status)+1});animation-delay:${Math.min(k*12,600)}ms"><title>${esc(a.candidate_name)} · ${esc(stLabel(stageIdx(a.status)))}</title><circle cx="12" cy="7" r="5" fill="currentColor"/><path d="M3 29c0-6 4-11 9-11s9 5 9 11z" fill="currentColor"/></svg>`).join("")}
+    <div class="summary">
+      <div class="tri">
+        <div style="--c:var(--s6)"><b class="num">${s.verified}</b><span>${t("m_verified")}</span></div>
+        <div style="--c:var(--s3)"><b class="num">${s.selected}</b><span>${t("m_selected")}</span></div>
+        <div style="--c:var(--s1)"><b class="num">${s.applied}</b><span>${t("m_applied")}</span></div>
       </div>
-      <div class="legend">${STAGE_KEYS.map((_,i)=>`<span style="${cv(i)}"><i></i>${stLabel(i)}</span>`).join("")}</div>
+      <div class="goal">${ring(s.verified, s.people)}<p>${t("goal",{j:s.verified,n:s.people})}</p></div>
     </div>
   </section>
 
   <section class="section" aria-labelledby="jh">
-    <div class="sec-head"><h2 id="jh">${t("journey")}</h2><p>${t("tapStop")}</p></div>
-    <div class="road">
-      <ol>${STAGE_KEYS.map((_,i)=>`<li><button class="stop ${s.counts[i]?"":"zero"}" data-stage="${i}" aria-pressed="${S.filter.stage===i}" style="${cv(i)}">
-        <span class="dot">${ic("s"+(i+1))}<span class="step">${i+1}</span></span>
-        <span class="txt"><span class="lbl">${stLabel(i)}</span><br><span class="pct num">${s.records?Math.round(s.counts[i]/s.records*100):0}%</span></span>
-        <b class="num">${s.counts[i]}</b></button></li>`).join("")}</ol>
-      <div class="bar100" aria-hidden="true">${s.counts.map((c,i)=>c?`<i style="${cv(i)};width:${c/s.records*100}%"></i>`:"").join("")}</div>
-    </div>
+    <div class="sec-head"><div><h2 id="jh">${t("journey")}</h2><p class="hint" style="margin:4px 0 0">${t("journeyNote")}</p></div><p>${t("tapStop")}</p></div>
+    ${road(s, true)}
   </section>
 
   <section class="section main">
@@ -530,109 +560,139 @@ function renderDashboard(){
     <aside class="side">
       <div class="panel"><h3>${ic("building")} ${t("companies")}</h3>
         ${shownCos.map(([name,v])=>`<button class="co" data-co="${esc(name)}" aria-pressed="${S.filter.company===name}">
-          <span class="lm">${esc(initials(name))}</span>
-          <span style="min-width:0"><span class="nm" style="display:block">${esc(name)}</span>
-          <span class="sb">${v.c.map((c,i)=>c?`<i style="${cv(i)};width:${c/v.n*100}%"></i>`:"").join("")}</span></span>
+          <span class="lm">${esc(initials(name))}</span><span style="min-width:0"><span class="nm">${esc(name)}</span>${stackBar(v.c)}</span>
           <b class="num">${v.n}</b></button>`).join("")}
-        ${cos.length>7?`<button class="more" id="coMore">${S.coAll?t("less"):t("more")+" ("+cos.length+")"}</button>`:""}
-      </div>
-      <div class="panel"><h3>${t("projects")}</h3>
-        <div class="pj">${pjs.map(([p,n])=>`<button data-pj="${esc(p)}" aria-pressed="${S.filter.project===p}"><b class="num">${n}</b><span>${esc(p)}</span></button>`).join("")}</div>
+        ${cos.length>8?`<button class="more" id="coMore">${S.coAll?t("less"):t("more")+" ("+cos.length+")"}</button>`:""}
       </div>
     </aside>
   </section>
-  <div class="foot"><span>${t("updated")}: ${esc(D.updated||"—")}</span><span>PMIS · VLE ${esc(D.vle.vle_id)}</span></div>`;
+  <div class="foot"><span>${t("updated")}: ${esc(D.updated||"—")}</span><span>PMIS – CSC Project · ${esc(D.vle.vle_id)}</span></div>`;
 
   app.querySelectorAll(".stop").forEach(b => b.addEventListener("click", () => { const i=+b.dataset.stage; S.filter.stage = S.filter.stage===i?null:i; refresh(); }));
   app.querySelectorAll(".co").forEach(b => b.addEventListener("click", () => { const c=b.dataset.co; S.filter.company = S.filter.company===c?null:c; refresh(); }));
-  app.querySelectorAll("[data-pj]").forEach(b => b.addEventListener("click", () => { const p=b.dataset.pj; S.filter.project = S.filter.project===p?null:p; refresh(); }));
   $("#coMore")?.addEventListener("click", () => { S.coAll=!S.coAll; render(); });
   $("#backAll")?.addEventListener("click", () => load());
   $("#q").addEventListener("input", e => { S.filter.q = e.target.value; renderList(); });
   renderList();
 }
-function refresh(){ // keep scroll + search focus, re-render pressed states & list
+function refresh(){
   app.querySelectorAll(".stop").forEach(b => b.setAttribute("aria-pressed", S.filter.stage===+b.dataset.stage));
   app.querySelectorAll(".co").forEach(b => b.setAttribute("aria-pressed", S.filter.company===b.dataset.co));
-  app.querySelectorAll("[data-pj]").forEach(b => b.setAttribute("aria-pressed", S.filter.project===b.dataset.pj));
   renderList();
   $("#q").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start"});
 }
 function filtered(){
   const f = S.filter, q = f.q.trim().toLowerCase();
-  return S.data.applications.filter(a =>
-    (f.stage===null || stageIdx(a.status)===f.stage) &&
-    (f.company===null || (a.company_name||"—")===f.company) &&
-    (f.project===null || (a.project_code||"—")===f.project) &&
-    (!q || a.candidate_name.toLowerCase().includes(q) || a.candidate_id.toLowerCase().includes(q) || a.internship_id.toLowerCase().includes(q))
-  ).sort((a,b)=>stageIdx(b.status)-stageIdx(a.status) || a.candidate_name.localeCompare(b.candidate_name));
+  return S.cands.filter(c =>
+    (f.stage===null || c.best===f.stage) &&
+    (f.company===null || c.apps.some(a => (a.company_name||"—")===f.company)) &&
+    (!q || c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q) || c.apps.some(a => a.internship_id.toLowerCase().includes(q)))
+  ).sort((a,b)=>b.best-a.best || a.name.localeCompare(b.name));
 }
 function renderList(){
-  const list = filtered(), f = S.filter;
-  const pills = [];
+  const list = filtered(), f = S.filter, pills = [];
   if (f.stage!==null) pills.push(`<button class="pill" data-clear="stage" style="${cv(f.stage)}">${stLabel(f.stage)}<span class="x">${ic("x")}</span></button>`);
   if (f.company) pills.push(`<button class="pill" data-clear="company">${esc(f.company)}<span class="x">${ic("x")}</span></button>`);
-  if (f.project) pills.push(`<button class="pill" data-clear="project">${esc(f.project)}<span class="x">${ic("x")}</span></button>`);
   $("#active").innerHTML = `<span class="count">${t("showing",{n:list.length})}</span>${pills.length?pills.join(""):`<span class="hint">· ${t("everyone")}</span>`}`;
   $("#active").querySelectorAll("[data-clear]").forEach(b => b.addEventListener("click", () => { S.filter[b.dataset.clear] = null; refresh(); }));
-  $("#cards").innerHTML = list.length ? list.map((a)=>{ const i=stageIdx(a.status); const k=S.data.applications.indexOf(a); return `
-    <button class="card" data-k="${k}" style="${cv(i)}">
-      <span class="row"><span class="av">${esc(initials(a.candidate_name))}</span>
-        <span style="min-width:0;display:grid"><h3>${esc(a.candidate_name)}</h3><span class="cmp">${ic("building")}<span>${esc(a.company_name)}</span></span></span></span>
-      <span class="track" aria-hidden="true">${STAGE_KEYS.map((_,j)=>`<i class="${j<=i?"on":""}"></i>`).join("")}</span>
-      <span class="now"><span class="badge">${ic("s"+(i+1))}${stLabel(i)}</span><span class="hint">${t("step",{i:i+1})}</span></span>
-      <span class="ids"><span>${t("candId")}</span><span class="mono">${esc(a.candidate_id)}</span><span>${t("internId")}</span><span class="mono">${esc(a.internship_id)}</span></span>
-    </button>`}).join("") : `<div class="empty">${t("none")}</div>`;
-  $("#cards").querySelectorAll(".card").forEach(c => c.addEventListener("click", () => openPerson(S.data.applications[+c.dataset.k])));
+  const q = f.q.trim().toLowerCase();
+  $("#cards").innerHTML = list.length ? list.map(c => { const i=c.best, k=S.cands.indexOf(c), multi=c.apps.length>1;
+    const hit = q && c.apps.some(a=>a.internship_id.toLowerCase().includes(q)) && !c.top.internship_id.toLowerCase().includes(q);
+    return `<article class="card" style="${cv(i)}">
+      <button class="card-open" data-k="${k}">
+        <span class="row"><span class="av">${esc(initials(c.name))}</span>
+          <span style="min-width:0;display:grid"><h3>${esc(c.name)}</h3><span class="cmp">${ic("building")}<span>${esc(c.top.company_name)}${multi?` +${c.apps.length-1}`:""}</span></span></span></span>
+        ${track(i)}
+        <span class="now">${badge(i)}<span class="hint">${t("step",{i:i+1})}</span></span>
+        <span class="ids"><span>${t("candId")}</span><span class="mono">${esc(c.id)}</span><span>${t("internId")}</span><span class="mono">${esc(c.top.internship_id)}</span></span>
+      </button>
+      ${multi?`<details class="apps"${hit?" open":""}><summary>${t("nApps",{n:c.apps.length})}<span class="chev">${ic("chev")}</span></summary>
+        <ul>${c.apps.map((a,j)=>appRow(a,j===0)).join("")}</ul></details>`:""}
+    </article>`}).join("") : `<div class="empty">${t("none")}</div>`;
+  $("#cards").querySelectorAll(".card-open").forEach(b => b.addEventListener("click", () => openCandidate(S.cands[+b.dataset.k])));
 }
-function openPerson(a){
-  const i = stageIdx(a.status);
+function openCandidate(c){
+  const i = c.best, a = c.top;
   $("#dlgBody").innerHTML = `
-    <div class="dl-head" style="${cv(i)}"><span class="av">${esc(initials(a.candidate_name))}</span>
-      <div style="min-width:0"><h2>${esc(a.candidate_name)}</h2><span class="cmp hint" style="display:flex;gap:6px;align-items:center">${ic("building")} ${esc(a.company_name)}</span></div></div>
+    <div class="dl-head" style="${cv(i)}"><span class="av">${esc(initials(c.name))}</span>
+      <div style="min-width:0"><h2>${esc(c.name)}</h2><span class="hint mono">${t("candId")}: ${esc(c.id)}</span></div></div>
+    <h3>${t("furthest")}: ${esc(a.company_name)}</h3>
     <ol class="steps">${STAGE_KEYS.map((_,j)=>`<li class="${j<i?"done":j===i?"cur":"up"}" style="${cv(i)}"><span class="d">${ic("s"+(j+1))}</span><span>${stLabel(j)}</span></li>`).join("")}</ol>
-    <p style="margin:0;font-weight:700;color:var(--s${i+1})">${i===5?t("done"):t("next",{s:stLabel(i+1)})}</p>
+    <p style="margin:0;font-weight:700;color:var(--s${i+1})">${i===VERIFIED?"✓ "+t("done"):t("next",{s:stLabel(i+1)})}</p>
+    ${c.apps.length>1?`<h3>${t("allApps")} (${c.apps.length})</h3><ul class="dl-apps">${c.apps.map((x,j)=>appRow(x,j===0)).join("")}</ul>`:""}
     <div class="facts">
-      <div><span>${t("candId")}</span><b class="mono">${esc(a.candidate_id)}</b></div>
       <div><span>${t("internId")}</span><b class="mono">${esc(a.internship_id)}</b></div>
-      <div><span>${t("company")}</span><b>${esc(a.company_name)}</b></div>
-      <div><span>${t("project")}</span><b class="mono">${esc(a.project_code)}</b></div>
+      <div><span>${t("project")}</span><b class="mono">${esc(a.project_code||"—")}</b></div>
+      <div><span>${t("district")}</span><b>${esc(a.vle_district||"—")}</b></div>
+      <div><span>${t("state")}</span><b>${esc(a.vle_location||"—")}</b></div>
       <div><span>${t("vleId")}</span><b class="mono">${esc(a.vle_id)}</b></div>
-      <div><span>${t("location")}</span><b>${esc(a.vle_location)}</b></div>
     </div>
     <div class="dl-foot"><button class="btn" id="dSpeak">${ic("speak")} ${t("listen")}</button><button class="btn primary" id="dClose">${t("close")}</button></div>`;
   const d = $("#dlg");
   $("#dClose").onclick = () => d.close();
-  $("#dSpeak").onclick = () => speak(t("sayOne",{name:a.candidate_name,c:a.company_name,i:i+1,s:stLabel(i)}));
+  $("#dSpeak").onclick = () => speak(t("sayOne",{name:c.name,k:c.apps.length,s:stLabel(i),c:a.company_name}));
   d.onclick = e => { if (e.target === d) d.close(); };
   d.showModal ? d.showModal() : d.setAttribute("open","");
 }
 
-/* ---------- admin ---------- */
+/* ---------- admin: project / state / district overview ---------- */
 function renderAdmin(){
-  const v = S.vles || [];
+  const all = S.overview.applications, f = S.af;
+  const states = [...new Set(all.map(a=>a.vle_location||"—"))].sort();
+  const districts = [...new Set(all.filter(a=>!f.state || (a.vle_location||"—")===f.state).map(a=>a.vle_district||"—"))].sort();
+  if (f.district && !districts.includes(f.district)) f.district = "";
+  const apps = all.filter(a => (!f.state || (a.vle_location||"—")===f.state) && (!f.district || (a.vle_district||"—")===f.district));
+  const cands = groupCandidates(apps), s = summarise(cands, apps);
+  const vleCount = new Set(apps.map(a=>a.vle_id)).size;
+  const level = !f.state ? "state" : !f.district ? "district" : null;
+  const groupBy = (key) => { const m = new Map(); cands.forEach(c => { const k = c[key]||"—"; const g = m.get(k)||{k, vles:new Set(), counts:[0,0,0,0,0,0], n:0}; g.vles.add(c.vle_id); g.counts[c.best]++; g.n++; m.set(k,g); }); return [...m.values()].sort((a,b)=>b.n-a.n); };
+  const areaRows = level ? groupBy(level) : [];
+  const vleRows = (() => { const m = new Map(); cands.forEach(c => { const g = m.get(c.vle_id)||{id:c.vle_id, state:c.state, district:c.district, counts:[0,0,0,0,0,0], n:0, apps:0}; g.counts[c.best]++; g.n++; g.apps+=c.apps.length; m.set(c.vle_id,g); }); return [...m.values()].sort((a,b)=>b.n-a.n); })();
+  const scope = [f.district, f.state].filter(Boolean).join(", ") || "All states";
+  const legend = `<div class="legend">${STAGE_KEYS.map((_,i)=>`<span style="${cv(i)}"><i></i>${stLabel(i)}</span>`).join("")}</div>`;
+
   app.innerHTML = `
   <section class="section">
-    <div class="sec-head"><h2>Choose a VLE</h2><p>${v.length} VLEs · ${v.reduce((a,b)=>a+b.records,0)} application records</p></div>
-    <div class="vgrid">${v.map(x=>`<button class="vcard" data-v="${esc(x.vle_id)}">
-      <span class="mono" style="font-size:18px;font-weight:600">${esc(x.vle_id)}</span>
-      <span class="hint" style="display:flex;gap:6px;align-items:center">${ic("pin")} ${esc(x.location)}</span>
-      <span style="display:flex;gap:18px"><span><b class="num">${x.records}</b><br><span class="hint">records</span></span>
-      <span><b class="num" style="color:var(--s6)">${x.joined||0}</b><br><span class="hint">joined</span></span></span></button>`).join("")}</div>
+    <div class="sec-head"><div><h2>Project overview</h2><p class="hint" style="margin:4px 0 0">${esc(scope)} · data updated ${esc(S.overview.updated||"—")}</p></div></div>
+    <div class="filters">
+      <label>State<select id="fState"><option value="">All states</option>${states.map(x=>`<option ${x===f.state?"selected":""}>${esc(x)}</option>`).join("")}</select></label>
+      <label>District<select id="fDist"><option value="">All districts</option>${districts.map(x=>`<option ${x===f.district?"selected":""}>${esc(x)}</option>`).join("")}</select></label>
+      <button class="btn" id="fReset">Reset</button>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><b class="num">${vleCount}</b><span>VLEs</span></div>
+      <div class="kpi"><b class="num">${s.people}</b><span>Candidates</span><small>${s.records} applications</small></div>
+      <div class="kpi" style="--c:var(--s6)"><b class="num">${s.verified}</b><span>Joining verified</span><small>${pct(s.verified,s.people)}% of candidates</small></div>
+      <div class="kpi" style="--c:var(--s3)"><b class="num">${s.selected}</b><span>Selected, not yet joined</span><small>${pct(s.selected,s.people)}%</small></div>
+      <div class="kpi" style="--c:var(--s1)"><b class="num">${s.applied}</b><span>Applied to internships</span><small>${pct(s.applied,s.people)}%</small></div>
+      <div class="kpi"><b class="num">${s.people?(s.records/s.people).toFixed(1):"0"}</b><span>Applications per candidate</span></div>
+    </div>
   </section>
+  <section class="section"><div class="sec-head"><h2>Candidates by furthest step</h2><p>${esc(scope)}</p></div>${road(s,false)}</section>
+  ${level?`<section class="section"><div class="sec-head"><h2>By ${level}</h2><p>Click a row to drill down</p></div>
+    <div class="tbl-wrap"><table><thead><tr><th>${level==="state"?"State":"District"}</th><th class="n">VLEs</th><th class="n">Candidates</th><th>Furthest step mix</th><th class="n">Joining verified</th></tr></thead>
+    <tbody>${areaRows.map(g=>`<tr data-area="${esc(g.k)}"><td><b>${esc(g.k)}</b></td><td class="n">${g.vles.size}</td><td class="n">${g.n}</td><td>${stackBar(g.counts)}</td><td class="n"><b>${g.counts[5]}</b> <span class="hint">(${pct(g.counts[5],g.n)}%)</span></td></tr>`).join("")}</tbody></table></div>${legend}</section>`:""}
+  <section class="section"><div class="sec-head"><h2>VLEs</h2><p>Click a VLE to open their dashboard</p></div>
+    <div class="tbl-wrap"><table><thead><tr><th>VLE ID</th><th>District</th><th>State</th><th class="n">Candidates</th><th class="n">Applications</th><th>Furthest step mix</th><th class="n">Joining verified</th></tr></thead>
+    <tbody>${vleRows.map(v=>`<tr data-vle="${esc(v.id)}"><td class="mono"><button class="linkish mono">${esc(v.id)}</button></td><td>${esc(v.district||"—")}</td><td>${esc(v.state||"—")}</td><td class="n">${v.n}</td><td class="n">${v.apps}</td><td>${stackBar(v.counts)}</td><td class="n"><b>${v.counts[5]}</b> <span class="hint">(${pct(v.counts[5],v.n)}%)</span></td></tr>`).join("")}</tbody></table></div>${legend}</section>
   <section class="section"><div class="panel">
-    <h3>${ic("up")} Upload new PMIS Excel</h3>
-    <p class="note" style="margin:0">Replaces all application records. Needs a sheet with headers: Candidate Id, Candidate Name, Internship Id, Company Name, Application Status, VLE ID, VLE Location, Project Code. New VLEs get a PIN in <span class="mono">data/new_vle_pins.csv</span>.</p>
+    <h3>${ic("up")} Upload new PMIS export</h3>
+    <p class="note" style="margin:0">Replaces all application records. Headers needed: Candidate Id, Candidate Name, Internship Id, Company Name, Application Status, VLE ID, VLE Location (state), VLE District, Project Code. Uploads made here last until the server restarts; for a permanent update, replace <span class="mono">data/sample_PMIS.xlsx</span> in GitHub.</p>
     <div class="upload"><input type="file" id="xl" accept=".xlsx"><button class="btn" id="upBtn" ${DEMO?"disabled":""}>Upload</button></div>
-    <div class="note" id="upMsg">${DEMO?"Upload works when the app runs on the server.":""}</div>
+    <div class="note" id="upMsg">${DEMO?"Upload works on the hosted app.":""}</div>
   </div></section>`;
-  app.querySelectorAll("[data-v]").forEach(b => b.addEventListener("click", () => load(b.dataset.v)));
-  $("#upBtn").addEventListener("click", async () => {
-    const f = $("#xl").files[0]; if (!f) return;
+
+  $("#fState").onchange = e => { S.af.state = e.target.value; S.af.district = ""; renderAdmin(); };
+  $("#fDist").onchange = e => { S.af.district = e.target.value; renderAdmin(); };
+  $("#fReset").onclick = () => { S.af = {state:"",district:""}; renderAdmin(); };
+  app.querySelectorAll("[data-area]").forEach(r => r.onclick = () => { if (level==="state"){ S.af.state = r.dataset.area; S.af.district=""; } else S.af.district = r.dataset.area; renderAdmin(); window.scrollTo({top:0}); });
+  app.querySelectorAll("[data-vle]").forEach(r => r.onclick = () => load(r.dataset.vle));
+  $("#upBtn").onclick = async () => {
+    const file = $("#xl").files[0]; if (!file) return;
     $("#upMsg").textContent = "Uploading…";
-    try{ const r = await api.upload(f); $("#upMsg").textContent = `Loaded ${r.rows} records for ${r.vles} VLEs (${r.new_vles} new).` + (r.warnings.length?` Warnings: ${r.warnings.slice(0,5).join("; ")}`:""); S.vles = await api.vles(); setTimeout(()=>renderAdmin(),1500);}
+    try{ const r = await api.upload(file); $("#upMsg").textContent = `Loaded ${r.rows} applications from ${r.candidates} candidates across ${r.vles} VLEs.` + (r.warnings.length?` Warnings: ${r.warnings.slice(0,5).join("; ")}`:""); S.overview = await api.overview(); setTimeout(renderAdmin, 1800); }
     catch(e){ $("#upMsg").textContent = e.message; }
-  });
+  };
 }
 
 /* ---------- router ---------- */
@@ -640,8 +700,8 @@ function render(){
   renderChrome();
   if (!S.token) return renderLogin();
   if (S.data) return renderDashboard();
-  if (S.role === "admin" && S.vles) return renderAdmin();
-  app.innerHTML = `<p class="hint" style="padding:40px 0">…</p>`;
+  if (S.role === "admin" && S.overview) return renderAdmin();
+  app.innerHTML = `<p class="hint" style="padding:40px 0">${esc(S.err)||"…"}</p>`;
 }
 if ("speechSynthesis" in window) speechSynthesis.getVoices();
 render();

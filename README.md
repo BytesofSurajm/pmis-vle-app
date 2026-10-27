@@ -1,4 +1,7 @@
-# PMIS VLE Dashboard – Web App
+# PMIS – CSC Project · VLE Dashboard
+
+**Update 27-10-2026 (client call):** six agreed stages (Applied → Shortlisted → Selected → Offer Letter Received → Offer Letter Accepted → Joining Verified; old labels "Accepted"→Selected and "Joined"→Joining Verified are mapped automatically). Headline metrics are Joining verified / Selected, not yet joined / Applied to internships. Candidates with several applications are counted once, at their furthest step, with a drop-down showing every application. VLE greeting shows district + state (Excel column `VLE District`). Admin users get a project overview with state and district filters. Logins are set in `data/pins.csv` (`ID,PIN[,admin]`).
+
 
 Replaces the Excel + Power BI setup. A VLE (the "head") opens the site, types their **VLE ID + 4-digit PIN**, and sees only the interns registered under them, drawn as pictures rather than tables.
 

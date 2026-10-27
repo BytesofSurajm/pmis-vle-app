@@ -1,20 +1,22 @@
 """PMIS VLE web app - API + static frontend.
 
 Run:  uvicorn app:app --host 0.0.0.0 --port 8000
-Env:  PMIS_SECRET   long random string used to sign login tokens (required in production)
-      PMIS_DB       path to the SQLite file (default ../data/pmis.db)
 
-Security model (replaces Power BI row-level security):
-  * A VLE logs in with VLE ID + 4-digit PIN and receives a signed token.
-  * Every data query is filtered on the server by the VLE ID inside the token.
-    A VLE can never ask for another VLE's rows - there is no parameter for it.
-  * The ADMIN login (role=admin) may pick any VLE and upload a new Excel file.
+Logins
+  * VLE heads: VLE ID + PIN/password. See only their own candidates (filtered on the server).
+  * Admin users (role=admin): project-wide dashboard with state/district filters, can open any
+    VLE and upload a new Excel export.
+
+Credentials come from data/pins.csv (columns: ID,PIN[,role]) and/or env vars:
+  PMIS_PINS="VLEKA20261:0630,VLEMA20266:4113"   PMIS_ADMIN_PIN="5823"
+Optional: PMIS_SECRET (token key; random per start if unset), PMIS_DB, PMIS_SEED_XLSX.
 """
 import base64
 import hashlib
 import hmac
 import json
 import os
+import secrets
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -27,69 +29,70 @@ from pydantic import BaseModel
 import db
 import importer
 
-import secrets as _secrets
-# No PMIS_SECRET set -> a random key per server start (users simply log in again after a restart).
-SECRET = (os.environ.get("PMIS_SECRET") or _secrets.token_hex(32)).encode()
+ROOT = Path(__file__).resolve().parent.parent
+FRONTEND = ROOT / "frontend"
+DATA = ROOT / "data"
+SECRET = (os.environ.get("PMIS_SECRET") or secrets.token_hex(32)).encode()
 TOKEN_HOURS = 12
-FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
 
-app = FastAPI(title="PMIS VLE Dashboard API")
+app = FastAPI(title="PMIS CSC Project - VLE Dashboard API")
 db.init()
 
 
-# ---------- start-up seeding (for free hosts whose disk is wiped on restart) ----------
-# PMIS_SEED_XLSX  Excel file loaded when the database is empty (default data/sample_PMIS.xlsx)
-# PMIS_PINS       fixed PINs, e.g. "VLEKA20261:0630,VLEMA20266:4113"
-# PMIS_ADMIN_PIN  PIN for the ADMIN login
+# ---------- start-up seeding (free hosts wipe the disk on restart) ----------
+def read_credentials():
+    """Returns [(id, pin, role)] from data/pins.csv and env vars."""
+    creds = []
+    f = DATA / "pins.csv"
+    if f.exists():
+        for line in f.read_text(encoding="utf-8-sig").splitlines():
+            parts = [x.strip() for x in line.split(",")]
+            if len(parts) < 2 or not parts[0] or not parts[1] or parts[0].lower() in ("vle id", "id"):
+                continue
+            uid = parts[0].upper()
+            role = (parts[2].lower() if len(parts) > 2 and parts[2] else ("admin" if uid == "ADMIN" else "vle"))
+            creds.append((uid, parts[1], role))
+    for pair in os.environ.get("PMIS_PINS", "").split(","):
+        if ":" in pair:
+            uid, pin = (x.strip() for x in pair.split(":", 1))
+            creds.append((uid.upper(), pin, "vle"))
+    if os.environ.get("PMIS_ADMIN_PIN", "").strip():
+        creds.append(("ADMIN", os.environ["PMIS_ADMIN_PIN"].strip(), "admin"))
+    return creds
+
+
 def seed():
     with db.connect() as con:
         empty = con.execute("SELECT COUNT(*) FROM applications").fetchone()[0] == 0
     if empty:
-        f = Path(os.environ.get("PMIS_SEED_XLSX", FRONTEND.parent / "data" / "sample_PMIS.xlsx"))
+        f = Path(os.environ.get("PMIS_SEED_XLSX", DATA / "sample_PMIS.xlsx"))
         if f.exists():
             importer.load(f.read_bytes(), f.name)
-    pairs = os.environ.get("PMIS_PINS", "").split(",")
-    pin_file = FRONTEND.parent / "data" / "pins.csv"          # lines: VLE ID,PIN  (ADMIN allowed)
-    if pin_file.exists():
-        for line in pin_file.read_text().splitlines():
-            parts = [x.strip() for x in line.split(",")]
-            if len(parts) >= 2 and parts[1].isdigit():
-                if parts[0].upper() == "ADMIN":
-                    os.environ.setdefault("PMIS_ADMIN_PIN", parts[1])
-                else:
-                    pairs.append(f"{parts[0]}:{parts[1]}")
     with db.connect() as con:
-        for pair in pairs:
-            if ":" in pair:
-                vle, pin = (x.strip() for x in pair.split(":", 1))
-                if con.execute("SELECT 1 FROM vles WHERE vle_id=?", (vle.upper(),)).fetchone():
-                    db.set_pin(con, vle.upper(), pin)
-        admin_pin = os.environ.get("PMIS_ADMIN_PIN", "").strip()
-        if admin_pin:
-            if not con.execute("SELECT 1 FROM vles WHERE vle_id='ADMIN'").fetchone():
-                con.execute("INSERT INTO vles (vle_id, location, pin_salt, pin_hash, role) VALUES ('ADMIN','All','','','admin')")
-            db.set_pin(con, "ADMIN", admin_pin)
+        for uid, pin, role in read_credentials():
+            if role == "admin":
+                db.upsert_admin(con, uid, pin)
+            elif con.execute("SELECT 1 FROM vles WHERE vle_id=?", (uid,)).fetchone():
+                db.set_pin(con, uid, pin)
 
 
 seed()
 
 
-# ---------- tokens (HMAC-signed, no external dependency) ----------
+# ---------- tokens ----------
 def _b64(b: bytes) -> str:
     return base64.urlsafe_b64encode(b).decode().rstrip("=")
 
 
 def make_token(vle_id: str, role: str) -> str:
     body = _b64(json.dumps({"v": vle_id, "r": role, "exp": int(time.time()) + TOKEN_HOURS * 3600}).encode())
-    sig = _b64(hmac.new(SECRET, body.encode(), hashlib.sha256).digest())
-    return f"{body}.{sig}"
+    return f"{body}.{_b64(hmac.new(SECRET, body.encode(), hashlib.sha256).digest())}"
 
 
 def read_token(authorization: str = Header(default="")) -> dict:
     try:
         body, sig = authorization.removeprefix("Bearer ").split(".")
-        good = _b64(hmac.new(SECRET, body.encode(), hashlib.sha256).digest())
-        if not hmac.compare_digest(sig, good):
+        if not hmac.compare_digest(sig, _b64(hmac.new(SECRET, body.encode(), hashlib.sha256).digest())):
             raise ValueError
         data = json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
         if data["exp"] < time.time():
@@ -99,7 +102,13 @@ def read_token(authorization: str = Header(default="")) -> dict:
         raise HTTPException(401, "Please log in again.")
 
 
-# ---------- login with simple brute-force protection ----------
+def admin_only(user: dict = Depends(read_token)) -> dict:
+    if user["r"] != "admin":
+        raise HTTPException(403, "Admin only.")
+    return user
+
+
+# ---------- login ----------
 _fails: dict[str, list[float]] = defaultdict(list)
 
 
@@ -110,78 +119,72 @@ class Login(BaseModel):
 
 @app.post("/api/login")
 def login(body: Login):
-    vle_id = body.vle_id.strip().upper()
-    recent = [t for t in _fails[vle_id] if t > time.time() - 900]
-    _fails[vle_id] = recent
-    if len(recent) >= 5:
+    uid = body.vle_id.strip().upper()
+    _fails[uid] = [t for t in _fails[uid] if t > time.time() - 900]
+    if len(_fails[uid]) >= 5:
         raise HTTPException(429, "Too many wrong tries. Wait 15 minutes.")
     with db.connect() as con:
-        row = con.execute("SELECT * FROM vles WHERE vle_id=?", (vle_id,)).fetchone()
+        row = con.execute("SELECT * FROM vles WHERE vle_id=?", (uid,)).fetchone()
     if not row or not db.check_pin(row, body.pin.strip()):
-        _fails[vle_id].append(time.time())
-        raise HTTPException(401, "VLE ID or PIN is wrong.")
-    _fails.pop(vle_id, None)
+        _fails[uid].append(time.time())
+        raise HTTPException(401, "VLE ID or password is wrong.")
+    _fails.pop(uid, None)
     return {"token": make_token(row["vle_id"], row["role"]), "vle_id": row["vle_id"], "role": row["role"]}
 
 
 # ---------- data ----------
-def _payload(con, vle_id: str):
-    vle = con.execute("SELECT vle_id, location FROM vles WHERE vle_id=?", (vle_id,)).fetchone()
-    if not vle:
-        raise HTTPException(404, "VLE not found.")
-    rows = con.execute(
-        """SELECT candidate_id, candidate_name, internship_id, company_name, status,
-                  vle_id, vle_location, project_code
-           FROM applications WHERE vle_id=? ORDER BY candidate_name""",
-        (vle_id,),
-    ).fetchall()
-    meta = dict(con.execute("SELECT k, v FROM meta").fetchall())
-    return {
-        "vle": dict(vle),
-        "stages": db.STAGES,
-        "applications": [dict(r) for r in rows],
-        "updated": meta.get("last_import"),
-    }
+APP_COLS = "candidate_id, candidate_name, internship_id, company_name, status, vle_id, vle_location, vle_district, project_code"
+
+
+def _meta(con):
+    return dict(con.execute("SELECT k, v FROM meta").fetchall())
 
 
 @app.get("/api/dashboard")
 def dashboard(vle: str | None = None, user: dict = Depends(read_token)):
     target = user["v"]
     if user["r"] == "admin":
-        target = (vle or "").upper()
-        if not target:
+        if not vle:
             raise HTTPException(400, "Choose a VLE.")
+        target = vle.upper()
     with db.connect() as con:
-        return _payload(con, target)
+        v = con.execute("SELECT vle_id, location, district FROM vles WHERE vle_id=? AND role='vle'", (target,)).fetchone()
+        if not v:
+            raise HTTPException(404, "VLE not found.")
+        rows = con.execute(f"SELECT {APP_COLS} FROM applications WHERE vle_id=? ORDER BY candidate_name", (target,)).fetchall()
+        return {"vle": dict(v), "stages": db.STAGES, "applications": [dict(r) for r in rows],
+                "updated": _meta(con).get("last_import")}
 
 
-@app.get("/api/vles")
-def list_vles(user: dict = Depends(read_token)):
-    if user["r"] != "admin":
-        raise HTTPException(403, "Admin only.")
+@app.get("/api/admin/overview")
+def overview(user: dict = Depends(admin_only)):
+    """All applications for the project-wide (state / district / VLE) dashboard."""
     with db.connect() as con:
-        rows = con.execute(
-            """SELECT v.vle_id, v.location, COUNT(a.id) AS records,
-                      SUM(a.status='Joined') AS joined
-               FROM vles v LEFT JOIN applications a ON a.vle_id=v.vle_id
-               WHERE v.role='vle' GROUP BY v.vle_id ORDER BY v.vle_id"""
-        ).fetchall()
-    return [dict(r) for r in rows]
+        rows = con.execute(f"SELECT {APP_COLS} FROM applications").fetchall()
+        return {"stages": db.STAGES, "applications": [dict(r) for r in rows], "updated": _meta(con).get("last_import")}
 
 
 @app.post("/api/admin/import")
-async def upload(file: UploadFile = File(...), user: dict = Depends(read_token)):
-    if user["r"] != "admin":
-        raise HTTPException(403, "Admin only.")
-    data = await file.read()
+async def upload(file: UploadFile = File(...), user: dict = Depends(admin_only)):
     try:
-        return importer.load(data, file.filename or "upload.xlsx")
+        result = importer.load(await file.read(), file.filename or "upload.xlsx")
     except ValueError as e:
         raise HTTPException(400, str(e))
+    seed()  # re-apply fixed PINs to any VLEs listed in pins.csv
+    return result
+
+
+@app.get("/api/health")
+def health():
+    with db.connect() as con:
+        return {"ok": True,
+                "applications": con.execute("SELECT COUNT(*) FROM applications").fetchone()[0],
+                "vles": con.execute("SELECT COUNT(*) FROM vles WHERE role='vle'").fetchone()[0],
+                "admins": con.execute("SELECT COUNT(*) FROM vles WHERE role='admin'").fetchone()[0]}
 
 
 # ---------- frontend ----------
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def index():
     return FileResponse(FRONTEND / "index.html")
 
