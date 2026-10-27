@@ -27,7 +27,9 @@ from pydantic import BaseModel
 import db
 import importer
 
-SECRET = os.environ.get("PMIS_SECRET", "dev-only-change-me").encode()
+import secrets as _secrets
+# No PMIS_SECRET set -> a random key per server start (users simply log in again after a restart).
+SECRET = (os.environ.get("PMIS_SECRET") or _secrets.token_hex(32)).encode()
 TOKEN_HOURS = 12
 FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
 
@@ -46,8 +48,18 @@ def seed():
         f = Path(os.environ.get("PMIS_SEED_XLSX", FRONTEND.parent / "data" / "sample_PMIS.xlsx"))
         if f.exists():
             importer.load(f.read_bytes(), f.name)
+    pairs = os.environ.get("PMIS_PINS", "").split(",")
+    pin_file = FRONTEND.parent / "data" / "pins.csv"          # lines: VLE ID,PIN  (ADMIN allowed)
+    if pin_file.exists():
+        for line in pin_file.read_text().splitlines():
+            parts = [x.strip() for x in line.split(",")]
+            if len(parts) >= 2 and parts[1].isdigit():
+                if parts[0].upper() == "ADMIN":
+                    os.environ.setdefault("PMIS_ADMIN_PIN", parts[1])
+                else:
+                    pairs.append(f"{parts[0]}:{parts[1]}")
     with db.connect() as con:
-        for pair in os.environ.get("PMIS_PINS", "").split(","):
+        for pair in pairs:
             if ":" in pair:
                 vle, pin = (x.strip() for x in pair.split(":", 1))
                 if con.execute("SELECT 1 FROM vles WHERE vle_id=?", (vle.upper(),)).fetchone():
