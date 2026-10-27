@@ -1,0 +1,5 @@
+.venv/
+__pycache__/
+data/pmis.db
+data/new_vle_pins.csv
+.DS_Store
